@@ -1,0 +1,13 @@
+{
+  "name": "island-now",
+  "version": "1.2.1",
+  "private": true,
+  "type": "module",
+  "description": "Lokales Now-Playing-Widget für OBS mit Spotify OAuth PKCE",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.mjs --open",
+    "test": "node --test",
+    "package": "node scripts/package.mjs"
+  }
+}

@@ -1,0 +1,30 @@
+name: Tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - run: node --test
+      - name: Windows-Tray kompilieren
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./scripts/build-windows.ps1
+      - name: Windows-Tray und Backend pruefen
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./scripts/test-windows.ps1

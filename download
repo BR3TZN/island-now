@@ -1,0 +1,8 @@
+.data/
+node_modules/
+*.log
+.env
+.env.*
+Island-Now.exe
+.updates/
+dist/
