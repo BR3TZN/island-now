@@ -1,10 +1,10 @@
-# Prüfung von Island Now 1.2.1
+# Prüfung von Island Now 1.2.2
 
 Stand: 20.10.2026. Laufzeit der automatisierten Prüfungen: Node.js 24 unter Linux.
 
 **Ergebnis: 24 Tests bestanden, 0 fehlgeschlagen.**
 
-Version 1.2.1 ergänzt den neutralen Dark Mode und die Auswahl „Cover-Farben“ für die Bedienoberfläche. Syntaxprüfung, statische Dateirouten, Bedienelement-Verweise und Erstellung des Quellpakets wurden erneut geprüft. Die Farbermittlung verwendet dieselbe getestete Cover-Funktion wie das Widget. Eine visuelle Prüfung der neuen Seitendarstellung und ein echter Spotify-Titelwechsel stehen noch aus.
+Version 1.2.2 ergänzt die automatische lokale Node-Einrichtung unter Windows. Die Windows-Workflows prüfen alte und fehlende Systemversionen, Wiederverwendung der privaten Laufzeit, Abbruch vor dem Download sowie beschädigte ZIP- und EXE-Dateien. Zusätzlich laden sie die echte offizielle Laufzeit herunter und starten den Tray bei ausgeblendeten System-Node-Pfaden. Eine Veröffentlichung erfolgt erst nach erfolgreichem Windows-Lauf einschließlich Update und Rollback mit Erhalt von `.data` und `runtime/`.
 
 Geprüft mit simulierten Spotify-Antworten:
 
@@ -22,7 +22,7 @@ Geprüft mit simulierten Spotify-Antworten:
 
 Zusätzlich bestanden: JavaScript-Syntaxprüfung, Syntaxprüfung des Bash-Starts und tatsächlicher Start als eigenständiger Node-Prozess mit frischem Datenordner und geändertem Port.
 
-12. Speicherung aller fünf Designs, automatischer Cover-Farben und gültiger Animationseinstellungen, inklusive Wiederherstellung und Eingabegrenzen.
+12. Speicherung aller sechs Designs, automatischer Cover-Farben und gültiger Animationseinstellungen, inklusive Wiederherstellung und Eingabegrenzen.
 13. Ermittlung einer dominanten Cover-Farbe, Kontrastanpassung und Fallback.
 14. Gleichursprüngliche Auslieferung des aktuellen Covers ohne freie Proxy-URLs, gemeinsame Zwischenspeicherung und ungültige alte Links.
 15. Abweisung unzulässiger Bildadressen, ungeeigneter MIME-Typen und übergroßer Bildantworten.
@@ -39,6 +39,6 @@ Zusätzlich bestanden: JavaScript-Syntaxprüfung, Syntaxprüfung des Bash-Starts
 
 ## Grenzen der Prüfung
 
-Keine echte Spotify-Client-ID und keine persönliche Kontofreigabe lagen vor. Ein echter OAuth-Login, kontobezogene Spotify-Beschränkungen und die Darstellung in der konkreten OBS-Installation müssen bei der ersten Einrichtung geprüft werden. Windows-CMD und die lokale Kompilierung/Ausführung der nativen Tray-EXE wurden in dieser Linux-Umgebung nicht geprüft. Die Anwendung liefert den C#-Quellcode und einen automatischen Erststart mit dem Windows-Framework-Compiler. Ein Chromium-Test konnte wegen eines Absturzes der verfügbaren Browser-Laufzeit vor dem Laden der Oberfläche nicht durchgeführt werden. Es liegt daher keine visuelle Browser-/OBS-Prüfung vor.
+Keine echte Spotify-Client-ID und keine persönliche Kontofreigabe lagen in der Testumgebung vor. Die Spotify-Anbindung wurde mit simulierten Antworten geprüft. Die konkrete OBS-Darstellung und das neue Fortschrittsfenster wurden nicht visuell auf einem Windows-Desktop geprüft. ARM64-Auswahl und Download-Hashes sind hinterlegt; ein tatsächlicher Lauf auf ARM64-Hardware ist nicht Bestandteil des x64-Windows-Workflows.
 
-Der GitHub-Workflow für Windows-Kompilierung, Tray-Start und Backend-Lebenszyklus ist vorbereitet. Vor dem ersten tatsächlichen GitHub-Lauf wurde er nicht ausgeführt. Die eigentliche Dateiersetzung mit Rollback unter Windows ist in dieser Linux-Umgebung nicht geprüft.
+Bereits für 1.2.1 bestanden die GitHub-Prüfungen für Windows-Kompilierung, Tray-Start, Update und Rollback. Der Nutzer hat das tatsächliche Update auf seinem PC bestätigt. Die Speicherung des neuen LINAMP-Looks ist automatisiert geprüft; eine visuelle Browserprüfung der neuen Gestaltung steht noch aus. Die oben beschriebenen neuen Node-Prüfungen sind zusätzliche Freigabebedingungen für das Release 1.2.2.
