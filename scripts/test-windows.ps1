@@ -30,7 +30,7 @@ try {
     if ($state.version -ne (Get-Content (Join-Path $projectRoot 'package.json') -Raw | ConvertFrom-Json).version) { throw 'Falsche Backend-Version.' }
     if ($PortableNode) {
         $child = Get-CimInstance Win32_Process -Filter ('ParentProcessId = ' + $nativeProcess.Id) | Where-Object { $_.Name -eq 'node.exe' }
-        if ($child.ExecutablePath -ne (Join-Path $projectRoot 'runtime\node.exe')) { throw 'Tray verwendet nicht die private Node-Laufzeit.' }
+        if ($child.ExecutablePath -ne (Join-Path $projectRoot 'runtime\node.exe')) { throw ('Tray verwendet nicht die private Node-Laufzeit. Erwartet: ' + (Join-Path $projectRoot 'runtime\node.exe') + '; Tray-PID: ' + $nativeProcess.Id + '; Kindprozess: ' + ($child | Select-Object ProcessId, ParentProcessId, Name, ExecutablePath | ConvertTo-Json -Compress)) }
     }
     Stop-Process -Id $nativeProcess.Id -Force; $nativeProcess.WaitForExit(5000) | Out-Null
     $stopped = $false
