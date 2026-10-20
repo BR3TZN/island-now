@@ -1,10 +1,12 @@
-# Prüfung von Island Now 1.2.2
+# Prüfung von Island Now 1.2.3
 
-Stand: 20.10.2026. Laufzeit der automatisierten Prüfungen: Node.js 24 unter Linux.
+Stand: 21.10.2026. Laufzeit der automatisierten Prüfungen: Node.js 24 unter Linux.
 
 **Ergebnis: 24 Tests bestanden, 0 fehlgeschlagen.**
 
-Version 1.2.2 ergänzt die automatische lokale Node-Einrichtung unter Windows. Die Windows-Workflows prüfen alte und fehlende Systemversionen, Wiederverwendung der privaten Laufzeit, Abbruch vor dem Download sowie beschädigte ZIP- und EXE-Dateien. Zusätzlich laden sie die echte offizielle Laufzeit herunter und starten den Tray bei ausgeblendeten System-Node-Pfaden. Eine Veröffentlichung erfolgt erst nach erfolgreichem Windows-Lauf einschließlich Update und Rollback mit Erhalt von `.data` und `runtime/`.
+Version 1.2.3 ersetzt den LINAMP-Look durch Winamp Classic. Die Gestaltung wird aus dem tatsächlichen Canvas-Zeichencode in 275 × 116 Pixeln und skaliert ausgegeben und visuell mit der Vorlage verglichen. Zusätzliche Zustände: lange Titel, Pause, ausgeblendete Zeit/Fortschrittsleiste, Cover-Akzentfarben und reduzierte Bewegung. Schrift und Ziffern benötigen keine installierten Systemschriften. Statische Routen und DOM-Verweise umfassen das neue Renderer-Modul.
+
+Die Windows-Freigabe enthält weiterhin Kompilierung, offiziellen Node-Download, privaten Tray-Start sowie Update und Rollback mit Erhalt von `.data` und `runtime/`.
 
 Geprüft mit simulierten Spotify-Antworten:
 
@@ -39,6 +41,6 @@ Zusätzlich bestanden: JavaScript-Syntaxprüfung, Syntaxprüfung des Bash-Starts
 
 ## Grenzen der Prüfung
 
-Keine echte Spotify-Client-ID und keine persönliche Kontofreigabe lagen in der Testumgebung vor. Die Spotify-Anbindung wurde mit simulierten Antworten geprüft. Die konkrete OBS-Darstellung und das neue Fortschrittsfenster wurden nicht visuell auf einem Windows-Desktop geprüft. ARM64-Auswahl und Download-Hashes sind hinterlegt; ein tatsächlicher Lauf auf ARM64-Hardware ist nicht Bestandteil des x64-Windows-Workflows.
+Keine echte Spotify-Client-ID und keine persönliche Kontofreigabe lagen in der Testumgebung vor. Die Spotify-Anbindung wurde mit simulierten Antworten geprüft. Die konkrete OBS-Darstellung und das Node-Fortschrittsfenster wurden nicht visuell auf einem Windows-Desktop geprüft. Die visuelle Prüfung des Skins verwendet dessen tatsächlichen Canvas-Renderer außerhalb von OBS. ARM64-Auswahl und Download-Hashes sind hinterlegt; ein tatsächlicher Lauf auf ARM64-Hardware ist nicht Bestandteil des x64-Windows-Workflows.
 
-Bereits für 1.2.1 bestanden die GitHub-Prüfungen für Windows-Kompilierung, Tray-Start, Update und Rollback. Der Nutzer hat das tatsächliche Update auf seinem PC bestätigt. Die Speicherung des neuen LINAMP-Looks ist automatisiert geprüft; eine visuelle Browserprüfung der neuen Gestaltung steht noch aus. Die oben beschriebenen neuen Node-Prüfungen sind zusätzliche Freigabebedingungen für das Release 1.2.2.
+Bereits für 1.2.1 bestanden die GitHub-Prüfungen für Windows-Kompilierung, Tray-Start, Update und Rollback. Der Nutzer hat das tatsächliche Update auf seinem PC bestätigt. Die Speicherung der sechs Designs ist automatisiert geprüft. Die genannten Windows-Prüfungen sind Freigabebedingungen des Release-Workflows.
