@@ -28,3 +28,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: ./scripts/test-windows.ps1
+      - name: Node-Erststart mit offiziellem Download pruefen
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./scripts/test-node-runtime.ps1 -Download
+      - name: Windows-Tray ohne System-Node pruefen
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./scripts/test-windows.ps1 -PortableNode

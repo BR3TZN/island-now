@@ -26,6 +26,10 @@ try {
         [IO.Compression.ZipFile]::ExtractToDirectory($archive, $caseRoot)
         $installRoot = Join-Path $caseRoot 'Island-Now'
         $application = Join-Path $installRoot 'Island-Now.exe'
+        $runtimeMarker = Join-Path $installRoot 'runtime\preserve.marker'
+        New-Item -ItemType Directory -Path (Split-Path -Parent $runtimeMarker) | Out-Null
+        [IO.File]::WriteAllText($runtimeMarker, 'Keep the private Node runtime during updates.', $utf8)
+        $runtimeHash = (Get-FileHash $runtimeMarker -Algorithm SHA256).Hash
         $packagePath = Join-Path $installRoot 'package.json'
         $oldPackage = Get-Content $packagePath -Raw | ConvertFrom-Json; $oldPackage.version = '0.9.0'; Write-Json $packagePath $oldPackage
         $oldTray = Start-Process -FilePath $application -ArgumentList '--quiet' -WorkingDirectory $installRoot -PassThru
@@ -60,11 +64,12 @@ try {
         }
         if ($after.profiles[0].overlayUrl -ne $before.profiles[0].overlayUrl) { throw 'OBS-Link wurde veraendert.' }
         if ((Get-FileHash $privateFile -Algorithm SHA256).Hash -ne $beforeHash) { throw 'Private Daten wurden veraendert.' }
+        if ((Get-FileHash $runtimeMarker -Algorithm SHA256).Hash -ne $runtimeHash) { throw 'Private Node-Laufzeit wurde veraendert.' }
         if (-not (Test-Path (Join-Path $installRoot '.updates\backups'))) { throw 'Programmsicherung fehlt.' }
         Stop-Test-App $application
         if (-not $installer.HasExited) { Stop-Process -Id $installer.Id -Force }
     }
-    Write-Output 'Windows-Update, Rollback und Erhalt privater Daten geprueft.'
+    Write-Output 'Windows-Update, Rollback und Erhalt privater Daten und Laufzeit geprueft.'
 } finally {
     if (Test-Path -LiteralPath $testRoot) {
         Get-Process -Name 'Island-Now' -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($testRoot, [StringComparison]::OrdinalIgnoreCase) } | ForEach-Object { Stop-Process -Id $_.Id -Force }

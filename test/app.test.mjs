@@ -174,16 +174,16 @@ test('Static assets resolve; no external JS and no broken DOM references in cont
   assert.equal(/\.innerHTML\s*=/.test(js + widget), false);
 });
 
-test('All five themes, cover colors and animation settings survive persistence', async t => {
+test('All six themes, cover colors and animation settings survive persistence', async t => {
   const f = await fixture(t, async () => response(null, 204));
-  for (const theme of ['island', 'studio', 'compact', 'cyberpunk', 'forza']) {
+  for (const theme of ['island', 'studio', 'compact', 'cyberpunk', 'forza', 'linamp']) {
     const result = await (await f.call(`/api/profiles/${f.profile.id}`, 'PATCH', { settings: { theme, accentMode: 'cover', motion: 'top', motionDuration: 950, trackTransition: 'slide' } })).json();
     assert.equal(result.settings.theme, theme); assert.equal(result.settings.accentMode, 'cover');
     const restored = createStore(f.directory).state.profiles[0].settings;
     assert.equal(restored.theme, theme); assert.equal(restored.motion, 'top'); assert.equal(restored.motionDuration, 950); assert.equal(restored.trackTransition, 'slide');
   }
   const safe = settingsFrom({ theme: 'unknown', motion: 'url(evil)', motionDuration: 999999, trackTransition: 'bad', accentMode: 'bad' }, f.profile.settings);
-  assert.equal(safe.theme, 'forza'); assert.equal(safe.motion, 'top'); assert.equal(safe.trackTransition, 'slide'); assert.equal(safe.accentMode, 'cover'); assert.equal(safe.motionDuration, 1500);
+  assert.equal(safe.theme, 'linamp'); assert.equal(safe.motion, 'top'); assert.equal(safe.trackTransition, 'slide'); assert.equal(safe.accentMode, 'cover'); assert.equal(safe.motionDuration, 1500);
 });
 
 test('Cover colors favor dominant colored areas, keep contrast and provide fallback', () => {

@@ -123,6 +123,7 @@ function draw() {
   card.classList.toggle('hidden', !frame.visible);
   if (state.data?.track) {
     $('elapsed').textContent = time(frame.progress);
+    $('linamp-elapsed').textContent = time(frame.progress);
     $('progress-fill').style.width = `${state.data.track.duration ? frame.progress / state.data.track.duration * 100 : 0}%`;
   }
 }

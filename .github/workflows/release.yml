@@ -34,6 +34,12 @@ jobs:
       - name: Windows-Tray pruefen
         shell: powershell
         run: ./scripts/test-windows.ps1
+      - name: Node-Erststart mit offiziellem Download pruefen
+        shell: powershell
+        run: ./scripts/test-node-runtime.ps1 -Download
+      - name: Windows-Tray ohne System-Node pruefen
+        shell: powershell
+        run: ./scripts/test-windows.ps1 -PortableNode
       - name: ZIP und Pruefsumme erstellen
         run: node scripts/package.mjs --windows
       - name: Update und Rollback unter Windows pruefen
@@ -52,7 +58,7 @@ jobs:
           $changelog = Get-Content CHANGELOG.md -Raw -Encoding UTF8
           $section = [regex]::Match($changelog, ('(?ms)^## ' + [regex]::Escape($version) + '\r?\n(.*?)(?=^## |\z)'))
           if (-not $section.Success) { throw 'Release-Eintrag im CHANGELOG fehlt.' }
-          $notes = "Island Now $version`n`n" + $section.Groups[1].Value.Trim() + "`n`nZIP vollstaendig entpacken und Island-Now.exe starten. Node.js ab Version 22 wird benoetigt. Vorhandene Nutzer behalten ihren .data-Ordner."
+          $notes = "Island Now $version`n`n" + $section.Groups[1].Value.Trim() + "`n`nZIP vollstaendig entpacken und Island-Now.exe starten. Fehlendes Node.js wird beim ersten Start automatisch lokal eingerichtet (Internet erforderlich, keine Adminrechte). Vorhandene Nutzer behalten ihren .data- und runtime-Ordner."
           $notesFile = Join-Path $env:RUNNER_TEMP 'island-release-notes.md'
           Set-Content -LiteralPath $notesFile -Value $notes -Encoding UTF8
           $existingDraft = gh release view $tag --json isDraft --jq '.isDraft' 2>$null

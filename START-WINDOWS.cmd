@@ -13,7 +13,7 @@ if not exist "%tray_csc%" (
   exit /b 1
 )
 echo Island Now wird einmalig als Tray-Anwendung vorbereitet ...
-"%tray_csc%" /nologo /target:winexe /optimize+ /platform:anycpu /r:System.Windows.Forms.dll /r:System.Drawing.dll /out:"%~dp0Island-Now.exe" "%~dp0windows\Tray.cs"
+"%tray_csc%" /nologo /target:winexe /optimize+ /platform:anycpu /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /out:"%~dp0Island-Now.exe" "%~dp0windows\Tray.cs" "%~dp0windows\NodeRuntime.cs"
 if errorlevel 1 (
   echo Tray-Anwendung konnte nicht erstellt werden. ZIP vollstaendig in einen beschreibbaren Ordner entpacken.
   pause

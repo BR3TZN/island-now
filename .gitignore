@@ -6,3 +6,4 @@ node_modules/
 Island-Now.exe
 .updates/
 dist/
+runtime/

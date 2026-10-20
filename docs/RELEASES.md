@@ -30,7 +30,7 @@ Nur Dateien hochzuladen oder den Titel eines vorhandenen Releases zu ändern erz
 
 ## Update auf einem Nutzer-PC
 
-Für einen vollständigen Update-Test kann zunächst das Windows-Paket **1.2.0** gestartet werden. Sobald **1.2.1** veröffentlicht ist, findet **Updates → Nach Updates suchen** die neue Version. **Update installieren** übernimmt anschließend auch die neue Auswahl **Oberfläche → Neutral dunkel / Cover-Farben**. Die Testversion in einen eigenen Ordner entpacken und keine zweite Instanz gleichzeitig auf demselben Port starten.
+Ein vorhandenes Windows-Paket ab **1.2.0** findet neue Versionen über **Updates → Nach Updates suchen**. **Update installieren** übernimmt auch die neue automatische Node-Einrichtung ab **1.2.2**. Für einen Test die App in einen eigenen Ordner entpacken und keine zweite Instanz gleichzeitig auf demselben Port starten.
 
 Die Oberfläche prüft beim Öffnen auf Wunsch das neueste öffentliche Release. Im Bereich **Updates** stehen installierte Version, verfügbare Version, Änderungen und **Update installieren**. Es wird ausschließlich nach Bestätigung installiert.
 
@@ -40,10 +40,12 @@ Die Bedienoberfläche und OBS-Browserquelle laden sich nach erkanntem Versionswe
 
 ## Paketformat
 
+Das Windows-Paket benötigt keine vorherige Node-Installation. Der Tray verwendet vorhandenes Node ab Version 22 oder lädt die passende offizielle LTS-Laufzeit beim ersten Start nach. Der lokale Ordner `runtime/` wird weder in Releases gepackt noch durch Update-Dateien überschrieben. Der Node-Download ist von der GitHub-Paketprüfung getrennt und prüft fest hinterlegte ZIP- und EXE-Hashes. Beim Aktualisieren der privaten Laufzeit in `windows/NodeRuntime.cs` müssen Version und alle vier offiziellen SHA-256-Werte für x64/ARM64 gemeinsam geändert werden. Eine ältere private Laufzeit wird dann beim nächsten Start ersetzt; eine kompatible Systeminstallation bleibt bevorzugt.
+
 GitHub erstellt `Island-Now-<version>-windows.zip` und die gleichnamige `.sha256`-Datei. Im ZIP liegen die Dateien unter `Island-Now/`. `update-manifest.json` enthält App-Kennung, Version, Plattform, Dateigrößen und SHA-256-Werte. Der GitHub-Digest des ZIPs wird bevorzugt, die SHA-256-Datei dient als kompatibler Ersatz. Die Verbindung zu GitHub erfolgt über HTTPS; GitHub-Zugangsdaten sind auf Nutzer-PCs nicht erforderlich.
 
 Quellpaket erstellen: `node scripts/package.mjs`. Windows-Paket auf Windows erstellen: `powershell -File scripts/build-windows.ps1`, danach `node scripts/package.mjs --windows`.
 
 ## Stand der Prüfung
 
-Automatisierte Tests prüfen Versionserkennung, ZIP-Validierung, Downloads und das sichere Vorbereiten eines Updates mit simulierten GitHub-Antworten. Windows-Installer, Tray-Kompilierung und der vollständige Windows-Neustart müssen zusätzlich unter Windows laufen. Der GitHub-Workflow enthält dafür einen Windows-Test; vor dem ersten tatsächlichen Workflow-Lauf gilt dieser als vorbereitet, nicht als bestanden.
+Automatisierte Tests prüfen Versionserkennung, ZIP-Validierung, Downloads und das sichere Vorbereiten eines Updates mit simulierten GitHub-Antworten. Die Windows-Workflows kompilieren die native Tray-Anwendung und prüfen ihren Backend-Lebenszyklus. Ab 1.2.2 testen sie zusätzlich den echten offiziellen Node-Download, Prüfsummen, Installation und einen Tray-Start mit ausgeblendeten System-Node-Pfaden. Der Release-Workflow prüft außerdem Update und Rollback einschließlich Erhalt von `.data` und `runtime/`; erst danach veröffentlicht er das Paket.
