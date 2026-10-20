@@ -7,7 +7,7 @@ if (-not (Test-Path -LiteralPath $compiler)) { throw 'Der .NET Framework C#-Comp
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('island node test ' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $testRoot | Out-Null
 try {
-    $node = (Get-Command node -CommandType Application).Source
+    $node = (Get-Command node.exe -CommandType Application | Select-Object -First 1).Source
     $runtimeSource = Get-Content (Join-Path $projectRoot 'windows\NodeRuntime.cs') -Raw
     $pinnedVersion = [regex]::Match($runtimeSource, 'const string Version = "(\d+\.\d+\.\d+)"').Groups[1].Value
     if (-not $pinnedVersion) { throw 'Festgelegte Node-Version fehlt.' }
