@@ -50,6 +50,7 @@ export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || j
     '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/styles.css': ['styles.css', 'text/css'],
     '/widget.js': ['widget.js', 'text/javascript'], '/widget-state.mjs': ['widget-state.mjs', 'text/javascript'], '/widget.css': ['widget.css', 'text/css'],
     '/themes.mjs': ['themes.mjs', 'text/javascript'], '/cover-colors.mjs': ['cover-colors.mjs', 'text/javascript'],
+    '/retro-player.mjs': ['retro-player.mjs', 'text/javascript'],
     '/overlay.html': ['overlay.html', 'text/html'], '/demo-cover.svg': ['demo-cover.svg', 'image/svg+xml'],
     '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/help.html': ['help.html', 'text/html'],
   };
