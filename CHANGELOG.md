@@ -1,5 +1,13 @@
 # Änderungen
 
+## 1.2.2
+
+- Neuer LINAMP-Look nach der Retro-Player-Vorlage: blaues Gehäuse, silberne Leisten, grünes Display, laufende Zeit und dekorative Pegelbalken. Direkt neben den bisherigen Designs auswählbar, mit Cover-Farben und den vorhandenen weichen Übergängen.
+- Windows prüft beim Start auf eine vorhandene, kompatible Node.js-Version ab 22.
+- Fehlt Node oder ist es zu alt, wird die offizielle Node.js-LTS-Laufzeit automatisch im Island-Now-Ordner eingerichtet: ohne Administratorrechte und ohne Änderung der Windows-PATH-Einstellung.
+- Ein kleines Fenster zeigt den Download-Fortschritt und erlaubt den Abbruch. SHA-256-Prüfsummen sichern ZIP und EXE vor der Verwendung ab.
+- Die private Laufzeit wird bei weiteren Starts wiederverwendet und bleibt bei App-Updates erhalten. Spotify-Anmeldung, Einstellungen und OBS-Links bleiben bestehen.
+
 ## 1.2.1
 
 - Neutrale dunkle Bedienoberfläche als Standard statt durchgehendem Grünstich.
