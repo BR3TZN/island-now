@@ -1,8 +1,10 @@
 import { WidgetState } from './widget-state.mjs';
 import { THEME_IDS, MOTION_IDS } from './themes.mjs';
 import { dominantAccent, readableAccent } from './cover-colors.mjs';
+import { createRetroRenderer } from './retro-player.mjs';
 const $ = id => document.getElementById(id);
 const state = new WidgetState(); const card = $('widget');
+const renderRetro = createRetroRenderer($('retro-player'));
 const preview = new URLSearchParams(location.search).get('preview') === '1';
 const key = location.pathname.match(/^\/overlay\/([A-Za-z0-9_-]{43})$/)?.[1];
 let settings = {}, lastTrack = '', interval;
@@ -13,6 +15,8 @@ const time = ms => { const n = Math.floor(Math.max(0, ms) / 1000); return `${Mat
 const color = x => /^#[0-9a-f]{6}$/i.test(x || '') ? x : '#1ed760';
 function applyAccent(value, source = 'manual') {
   let accent = color(value);
+  // Reuse the previous skin's default as classic green without changing saved profiles.
+  if (settings.theme === 'linamp' && source !== 'cover' && accent.toLowerCase() === '#9cff38') accent = '#00ff00';
   if (source === 'cover' && settings.theme === 'forza') accent = readableAccent([1, 3, 5].map(i => parseInt(accent.slice(i, i + 2), 16)), .173, 3);
   document.documentElement.style.setProperty('--accent', accent);
   document.documentElement.style.setProperty('--accent-rgb', [1, 3, 5].map(i => parseInt(accent.slice(i, i + 2), 16)).join(','));
@@ -123,9 +127,9 @@ function draw() {
   card.classList.toggle('hidden', !frame.visible);
   if (state.data?.track) {
     $('elapsed').textContent = time(frame.progress);
-    $('linamp-elapsed').textContent = time(frame.progress);
     $('progress-fill').style.width = `${state.data.track.duration ? frame.progress / state.data.track.duration * 100 : 0}%`;
   }
+  if (settings.theme === 'linamp') renderRetro({ track: state.data?.track, status: state.data?.status, progress: frame.progress, settings, accent: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(), reducedMotion: reducedMotion() });
 }
 $('cover').addEventListener('load', updateAccent);
 $('cover').addEventListener('error', () => { $('cover').classList.add('failed'); updateAccent(); });
