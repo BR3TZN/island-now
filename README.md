@@ -5,18 +5,20 @@ Lokales Spotify-Widget für OBS. Anmeldung im Browser mit OAuth 2.0 und PKCE, au
 ## In fünf Schritten starten
 
 1. ZIP **vollständig entpacken**, zum Beispiel nach `E:\STREAM\Bot\Island-Now`. Keine Dateien der früheren Songify-Lösung übernehmen.
-2. [Node.js](https://nodejs.org/en/download) ab Version 22 installieren, falls noch nicht vorhanden. Keine npm-Installation, keine PowerShell-Freigabe und keine zusätzlichen Pakete erforderlich.
+2. Unter Windows wird eine vorhandene Node.js-Version ab 22 automatisch erkannt. Fehlt eine passende Version, richtet der Start sie selbst ein; dafür ist einmalig Internet erforderlich. Auf Mac/Linux [Node.js](https://nodejs.org/en/download) ab Version 22 installieren. Keine npm-Installation und keine zusätzlichen Pakete erforderlich.
 3. **Island-Now.exe** aus dem Windows-Release doppelklicken. Bei einem Quellpaket zuerst **START-WINDOWS.cmd** ausführen; es erstellt die Tray-Anwendung einmalig mit dem Windows-.NET-Compiler. Danach läuft die Anwendung mit Symbol rechts unten im Infobereich. Die Oberfläche öffnet sich unter **http://127.0.0.1:17653**. Für weitere Starts direkt die erzeugte EXE verwenden.
 4. Die Spotify-App wie unten beschrieben konfigurieren, die **Client-ID** eintragen und auf **Mit Spotify verbinden** klicken. Die Anmeldung erfolgt auf der Spotify-Seite.
 5. Einen Titel in Spotify abspielen. **URL kopieren** drücken, in OBS eine **Browserquelle** hinzufügen und die URL einfügen. **Breite 800, Höhe 400**. „Lokale Datei“ bleibt aus. Ein bestehendes benutzerdefiniertes CSS, das einen Hintergrund setzt, entfernen; die Quelle ist bereits transparent.
 
 ## Windows-Tray und Aktualisierung
 
+Ab Version 1.2.2 prüft der Windows-Start zuerst die Laufzeit. Ohne passende Systeminstallation lädt ein kleines Fortschrittsfenster die offizielle Node.js-LTS-Version für x64 oder ARM64 von `nodejs.org`. ZIP und EXE werden mit fest hinterlegten SHA-256-Werten geprüft. Nur `node.exe` und die Lizenz werden unter `runtime/` im entpackten Island-Now-Ordner abgelegt. Es sind keine Administratorrechte nötig; Windows-PATH wird nicht verändert. Der Ordner muss beschreibbar sein. Nach der einmaligen Einrichtung startet die App wie gewohnt im Tray. Bei Abbruch oder Downloadfehler einfach erneut starten; eine vorhandene Laufzeit wird erst nach erfolgreicher Prüfung ersetzt.
+
 Im Windows-Release liegt `Island-Now.exe` bereits fertig bei. Beim Quellpaket wird sie durch den ersten Start erzeugt. Diese native Windows-Anwendung startet Node ohne Konsolenfenster. Ein Doppelklick auf das Tray-Symbol öffnet die Oberfläche. Das Kontextmenü enthält **Oberfläche öffnen**, **Neu starten**, **Protokoll öffnen** und **Beenden**. Nur „Beenden“ stoppt die Anwendung; das Schließen eines Browserfensters beendet das Widget nicht. Ein zweiter Start öffnet die Oberfläche statt eine zweite Tray-Instanz zu starten. Die lokale Node-Instanz erhält beim Beenden einen gezielten Shutdown-Befehl; auch der Verlust der Verbindung zum Tray-Prozess beendet den zugehörigen Server.
 
 Für den manuellen Umstieg von Version 1.0 oder 1.1: die bisherige Instanz beenden. Neue Dateien in denselben Ordner entpacken bzw. kopieren und ersetzen. **Den bestehenden `.data`-Ordner behalten.** Darin liegen deine Anmeldung, Profile, Einstellungen und OBS-Links. Anschließend `START-WINDOWS.cmd` starten und die Browseroberfläche neu laden. In OBS einmalig die Browserquellen-Höhe auf **400 px** setzen. Eine selbst erzeugte `Island-Now.exe` aus der alten Quellversion muss durch die neue Release-EXE ersetzt oder vor dem erneuten Quellpaket-Start entfernt werden.
 
-Das Protokoll liegt unter `.data/tray.log`. Die Konsolenvariante `START-KONSOLE.cmd` bleibt zur Diagnose verfügbar. Der Mac-/Linux-Start verwendet weiterhin ein Terminal.
+Das Protokoll liegt unter `.data/tray.log`. Die Konsolenvariante `START-KONSOLE.cmd` bleibt zur Diagnose verfügbar und benötigt Node im Windows-PATH. Der Mac-/Linux-Start verwendet weiterhin ein Terminal. Die private Windows-Laufzeit in `runtime/` bleibt bei App-Updates erhalten und gehört nicht ins weitergegebene ZIP.
 
 ## Integrierte Updates ab Version 1.2
 
@@ -40,7 +42,8 @@ Die **Client-ID** aus dem Dashboard eintragen. Sie hat 32 Hex-Zeichen. **Client-
 
 ## Anzeige
 
-- **Island, Studio, Compact, Cyberpunk, Forza:** fünf über die Oberfläche auswählbare Layouts. Cyberpunk verwendet kantige HUD-Flächen mit Gelb, Cyan und Magenta. Forza basiert auf deinem früheren `forza.css`: Cover oben, graue Textbalken, gelber Titel und weißer Interpret. Die empfohlene OBS-Höhe von 400 px verhindert Abschneiden des vertikalen Forza-Layouts.
+- **Island, Studio, Compact, Cyberpunk, Forza, LINAMP:** sechs über die Oberfläche auswählbare Layouts. Cyberpunk verwendet kantige HUD-Flächen mit Gelb, Cyan und Magenta. Forza basiert auf deinem früheren `forza.css`: Cover oben, graue Textbalken, gelber Titel und weißer Interpret. Die empfohlene OBS-Höhe von 400 px verhindert Abschneiden des vertikalen Forza-Layouts.
+- **LINAMP:** Retro-Player nach deiner Vorlage mit blauem Gehäuse, silbernen Leisten und grünem LCD. Zeit, Titel, Cover und Fortschritt zeigen die echten Spotify-Metadaten; Pegelbalken und Transporttasten dienen der Gestaltung. Cover-Farben und bestehende Übergänge funktionieren auch in diesem Look.
 - **Bei Songwechsel:** bei neuem Titel, beim Start der Browserquelle und beim Fortsetzen nach einer Pause für die gewählte Dauer eingeblendet; Standard 15 Sekunden.
 - **Dauerhaft:** solange Wiedergabedaten vorliegen. „Bei Pause ausblenden“ lässt sich separat schalten.
 - **Akzentfarbe, Breite, Cover, Fortschritt und Zeit:** direkt einstellbar. Einstellungen werden automatisch gespeichert und von OBS übernommen.
