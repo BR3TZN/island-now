@@ -1,5 +1,13 @@
 # Änderungen
 
+## 1.2.3
+
+- Der bisherige LINAMP-Look heißt jetzt „Winamp Classic“ und übernimmt die festen Proportionen des klassischen Players: 275 × 116 Pixel, dunkler Rahmen, goldene Titelzeilen, silberne Tasten und grünes Display.
+- Echte Pixel-Schrift und Segment-Ziffern statt moderner Systemschriften. Titel, Interpret, Laufzeit und Fortschrittsregler zeigen die aktuellen Spotify-Daten; lange Titel laufen durch das Display.
+- Kein Albumcover im klassischen Player-Fenster. Die vorhandene Cover-Farboption sowie Ein-/Ausblendungen und Titelübergänge bleiben nutzbar.
+- Pegelbalken und Bedientasten bleiben dekorativ. Nicht verfügbare Audio-Bitrate und Abtastrate werden als „--“ dargestellt.
+- Bestehende LINAMP-Profile und OBS-Links verwenden den neuen Look automatisch.
+
 ## 1.2.2
 
 - Neuer LINAMP-Look nach der Retro-Player-Vorlage: blaues Gehäuse, silberne Leisten, grünes Display, laufende Zeit und dekorative Pegelbalken. Direkt neben den bisherigen Designs auswählbar, mit Cover-Farben und den vorhandenen weichen Übergängen.
