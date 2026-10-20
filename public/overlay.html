@@ -3,8 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Island Now · OBS</title><link rel="stylesheet" href="/widget.css"><script type="module" src="/widget.js"></script></head>
 <body class="overlay-body">
   <a id="widget" class="widget hidden" data-theme="island" href="https://open.spotify.com" target="_blank" rel="noopener noreferrer" aria-label="Aktuellen Titel auf Spotify öffnen">
-    <div class="linamp-header" aria-hidden="true"><span class="linamp-wave">∿</span><span class="linamp-rail"></span><strong>LINAMP</strong><span class="linamp-rail"></span><span class="linamp-window-marks">▪ ▫</span></div>
-    <div class="linamp-display" aria-hidden="true"><div class="linamp-clock-row"><span class="linamp-play"></span><span id="linamp-elapsed" class="linamp-clock">0:00</span></div><div class="linamp-spectrum"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    <canvas id="retro-player" class="retro-player" width="275" height="116" aria-hidden="true"></canvas>
     <div class="cover-box"><img id="cover-back" class="cover cover-back" alt="" aria-hidden="true"><img id="cover" class="cover" alt="Albumcover"><div class="cover-fallback" aria-hidden="true">♪</div></div>
     <div class="song-body">
       <div class="song-top"><span id="play-label" class="play-label">LÄUFT GERADE</span><span class="spotify-brand"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24Zm5.5 17.3a.75.75 0 0 1-1.03.24c-2.82-1.72-6.38-2.11-10.57-1.15a.75.75 0 1 1-.34-1.46c4.59-1.05 8.51-.6 11.7 1.34.35.21.46.67.24 1.03Zm1.47-3.27a.94.94 0 0 1-1.29.31c-3.23-1.99-8.15-2.57-11.98-1.4a.94.94 0 0 1-.55-1.8c4.38-1.33 9.8-.68 13.51 1.6.44.27.58.85.31 1.29Zm.13-3.4C15.23 8.34 8.84 8.12 5.14 9.24a1.13 1.13 0 0 1-.65-2.16c4.25-1.29 11.31-1.04 15.76 1.6a1.13 1.13 0 0 1-1.15 1.95Z"/></svg><span>Spotify</span></span></div>
@@ -13,6 +12,5 @@
       <div id="progress-row" class="progress-row"><span id="elapsed" class="time">0:00</span><div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div><span id="duration" class="time">0:00</span></div>
     </div>
     <div class="activity" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-    <div class="linamp-footer" aria-hidden="true"><div class="linamp-transport"><span>Ⅰ◀</span><span>▶</span><span>Ⅱ</span><span>■</span><span>▶Ⅰ</span></div><div class="linamp-mini-slider"><i></i></div><span class="linamp-stereo"><i></i> STEREO</span></div>
   </a>
 </body></html>
