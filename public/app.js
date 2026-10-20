@@ -116,7 +116,7 @@ function concealClientId() {
 }
 function fitPreview() {
   if (!settings) return;
-  const w = settings.width + 56, height = settings.theme === 'forza' ? 380 : settings.theme === 'compact' ? 175 : 210;
+  const w = settings.width + 56, height = settings.theme === 'forza' ? 380 : settings.theme === 'linamp' ? 300 : settings.theme === 'compact' ? 175 : 210;
   $('preview-stage').dataset.theme = settings.theme;
   $('preview').width = w; $('preview').height = height;
   const scale = Math.min(1, ($('preview-stage').clientWidth - 24) / w);
