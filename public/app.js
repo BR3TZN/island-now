@@ -71,6 +71,7 @@ function renderSettings() {
   $('accent-source').textContent = settings.accentMode === 'cover' ? 'Wird aus dem Cover bestimmt' : 'Manuell gewählt';
   $('motion').value = settings.motion || 'fade'; $('track-transition').value = settings.trackTransition || 'fade';
   $('motion-duration').value = settings.motionDuration || 650; $('motion-duration-value').textContent = `${((settings.motionDuration || 650) / 1000).toLocaleString('de-AT')} s`;
+  $('theme-hint').hidden = settings.theme !== 'linamp';
   $('width').value = settings.width; $('width-value').textContent = `${settings.width} px`;
   $('display-seconds').value = Math.min(60, settings.displaySeconds); $('seconds-value').textContent = `${settings.displaySeconds} s`;
   $('duration-control').hidden = settings.mode === 'always';
@@ -116,7 +117,7 @@ function concealClientId() {
 }
 function fitPreview() {
   if (!settings) return;
-  const w = settings.width + 56, height = settings.theme === 'forza' ? 380 : settings.theme === 'linamp' ? 300 : settings.theme === 'compact' ? 175 : 210;
+  const w = settings.width + 56, height = settings.theme === 'forza' ? 380 : settings.theme === 'linamp' ? Math.ceil(settings.width * 116 / 275) + 60 : settings.theme === 'compact' ? 175 : 210;
   $('preview-stage').dataset.theme = settings.theme;
   $('preview').width = w; $('preview').height = height;
   const scale = Math.min(1, ($('preview-stage').clientWidth - 24) / w);

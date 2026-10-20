@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 [assembly: System.Reflection.AssemblyTitle("Island Now")]
-[assembly: System.Reflection.AssemblyVersion("1.2.2.0")]
+[assembly: System.Reflection.AssemblyVersion("1.2.3.0")]
 
 internal static class IslandNow {
     [STAThread] private static void Main(string[] args) {
