@@ -17,7 +17,7 @@ try {
     if ($PortableNode) {
         if (-not (Test-Path (Join-Path $projectRoot 'runtime\node.exe'))) { throw 'Private Node-Laufzeit fehlt.' }
         $startInfo.EnvironmentVariables['PATH'] = Join-Path $env:WINDIR 'System32'
-        foreach ($key in @('ProgramFiles', 'ProgramFiles(x86)', 'LOCALAPPDATA')) { $startInfo.EnvironmentVariables[$key] = Join-Path $testData 'no-system-node' }
+        foreach ($key in @('ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432', 'LOCALAPPDATA')) { $startInfo.EnvironmentVariables[$key] = Join-Path $testData 'no-system-node' }
     }
     $nativeProcess = [System.Diagnostics.Process]::Start($startInfo)
     $healthy = $false
