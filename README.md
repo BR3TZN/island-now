@@ -42,8 +42,10 @@ Die **Client-ID** aus dem Dashboard eintragen. Sie hat 32 Hex-Zeichen. **Client-
 
 ## Anzeige
 
-- **Island, Studio, Compact, Cyberpunk, Forza, LINAMP:** sechs über die Oberfläche auswählbare Layouts. Cyberpunk verwendet kantige HUD-Flächen mit Gelb, Cyan und Magenta. Forza basiert auf deinem früheren `forza.css`: Cover oben, graue Textbalken, gelber Titel und weißer Interpret. Die empfohlene OBS-Höhe von 400 px verhindert Abschneiden des vertikalen Forza-Layouts.
-- **LINAMP:** Retro-Player nach deiner Vorlage mit blauem Gehäuse, silbernen Leisten und grünem LCD. Zeit, Titel, Cover und Fortschritt zeigen die echten Spotify-Metadaten; Pegelbalken und Transporttasten dienen der Gestaltung. Cover-Farben und bestehende Übergänge funktionieren auch in diesem Look.
+- **Island, Studio, Compact, Cyberpunk, Forza, Winamp Classic:** sechs über die Oberfläche auswählbare Layouts. Cyberpunk verwendet kantige HUD-Flächen mit Gelb, Cyan und Magenta. Forza basiert auf deinem früheren `forza.css`: Cover oben, graue Textbalken, gelber Titel und weißer Interpret. Die empfohlene OBS-Höhe von 400 px verhindert Abschneiden des vertikalen Forza-Layouts.
+- **Winamp Classic:** ersetzt den LINAMP-Look durch das klassische Player-Fenster im Seitenverhältnis 275 × 116. Pixel-Schrift, Segment-Uhr, goldene Titelzeilen und silberne Tasten orientieren sich an der Vorlage. Der Player zeigt Titel, Interpret und Zeit ohne Albumcover; Cover-Farben und Übergänge bleiben verfügbar. Pegelbalken und Tasten sind dekorativ. Nicht verfügbare Audioangaben bleiben „--“. Vorhandene LINAMP-Einstellungen und OBS-Links bleiben gültig.
+
+  ![Winamp Classic](docs/winamp-classic.svg)
 - **Bei Songwechsel:** bei neuem Titel, beim Start der Browserquelle und beim Fortsetzen nach einer Pause für die gewählte Dauer eingeblendet; Standard 15 Sekunden.
 - **Dauerhaft:** solange Wiedergabedaten vorliegen. „Bei Pause ausblenden“ lässt sich separat schalten.
 - **Akzentfarbe, Breite, Cover, Fortschritt und Zeit:** direkt einstellbar. Einstellungen werden automatisch gespeichert und von OBS übernommen.
