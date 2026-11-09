@@ -115,9 +115,9 @@ internal sealed class DesktopWindow : Form {
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e) {
-        if (!shuttingDown && e.CloseReason == CloseReason.UserClosing) {
+        if (!shuttingDown && (e.CloseReason == CloseReason.UserClosing || e.CloseReason == CloseReason.TaskManagerClosing)) {
             e.Cancel = true;
-            if (closeToTray()) Hide();
+            if (e.CloseReason == CloseReason.UserClosing && closeToTray()) Hide();
             else BeginInvoke(exitApplication);
         }
         base.OnFormClosing(e);

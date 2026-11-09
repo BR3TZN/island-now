@@ -68,20 +68,21 @@ public static class IslandDesktopSmoke {
         }
         Write-Output 'WebView2 Runtime nicht vorhanden; Windows-Ersatzansicht geprueft.'
     }
-    if (-not [IslandDesktopSmoke]::PostMessage($window, 0x112, [UIntPtr]::new(0xF020), [IntPtr]::Zero)) { throw 'Minimieren konnte nicht ausgeloest werden.' }
+    # WM_SYSCOMMAND + SC_MINIMIZE/SC_CLOSE matches the native caption buttons.
+    if (-not [IslandDesktopSmoke]::PostMessage($window, 0x112, [UIntPtr]::new([uint32]0xF020), [IntPtr]::Zero)) { throw 'Minimieren konnte nicht ausgeloest werden.' }
     Wait-DesktopCondition 'Minimieren hat das Fenster nicht ins Tray ausgeblendet' { -not [IslandDesktopSmoke]::IsWindowVisible($window) }
     if ($nativeProcess.HasExited -or (Invoke-RestMethod "$origin/api/state" -TimeoutSec 2).app -ne 'Island Now') { throw 'Minimieren hat den Server beendet.' }
 
-    $window = Open-Desktop
+    if ((Open-Desktop) -ne $window) { throw 'Minimieren hat das Fenster geschlossen statt ausgeblendet.' }
     Set-CloseAction 'tray'
-    if (-not [IslandDesktopSmoke]::PostMessage($window, 0x10, [UIntPtr]::Zero, [IntPtr]::Zero)) { throw 'Schliessen konnte nicht ausgeloest werden.' }
+    if (-not [IslandDesktopSmoke]::PostMessage($window, 0x112, [UIntPtr]::new([uint32]0xF060), [IntPtr]::Zero)) { throw 'Schliessen konnte nicht ausgeloest werden.' }
     Wait-DesktopCondition 'Schliessen mit Tray-Option hat das Fenster nicht ausgeblendet' { -not [IslandDesktopSmoke]::IsWindowVisible($window) }
     if ($nativeProcess.HasExited -or (Invoke-RestMethod "$origin/api/state" -TimeoutSec 2).desktop.closeAction -ne 'tray') { throw 'Schliessen mit Tray-Option hat den Server beendet.' }
 
-    $window = Open-Desktop
+    if ((Open-Desktop) -ne $window) { throw 'Die Tray-Option hat das Fenster geschlossen statt ausgeblendet.' }
     Set-CloseAction 'exit'
-    if (-not [IslandDesktopSmoke]::PostMessage($window, 0x10, [UIntPtr]::Zero, [IntPtr]::Zero)) { throw 'Beenden konnte nicht ausgeloest werden.' }
-    if (-not $nativeProcess.WaitForExit(8000)) { throw 'Schliessen mit Beenden-Option hat die App nicht beendet.' }
+    if (-not [IslandDesktopSmoke]::PostMessage($window, 0x112, [UIntPtr]::new([uint32]0xF060), [IntPtr]::Zero)) { throw 'Beenden konnte nicht ausgeloest werden.' }
+    Wait-DesktopCondition 'Schliessen mit Beenden-Option hat die App nicht beendet' { $nativeProcess.HasExited }
     Write-Output 'Windows-Fenster, Minimieren, Wiederherstellen und beide Schliessen-Optionen geprueft.'
 }
 
@@ -136,4 +137,12 @@ try {
             Start-Sleep -Milliseconds 300
         }
     }
+}
+
+# The release workflow already packages and checks its own update. Run the same
+# check on pull requests before the Windows package is eligible for release.
+if ($env:GITHUB_EVENT_NAME -eq 'pull_request' -and -not $PortableNode) {
+    & node (Join-Path $PSScriptRoot 'package.mjs') --windows
+    if ($LASTEXITCODE -ne 0) { throw 'Windows-Paket konnte nicht erstellt werden.' }
+    & (Join-Path $PSScriptRoot 'test-update.ps1')
 }

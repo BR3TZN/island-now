@@ -2,7 +2,7 @@
 
 Stand: 09.11.2026. Laufzeit der automatisierten Prüfungen: Node.js 24 unter Linux.
 
-**Ergebnis: 34 Tests bestanden, 0 fehlgeschlagen.**
+**Ergebnis: 35 Tests bestanden, 0 fehlgeschlagen.**
 
 Version 1.4.0 ergänzt das Windows-Fenster, getrennte Bedienansichten und kräftigere Cover-Akzente. Die Integrationstests verwenden simulierte Spotify- und Twitch-Antworten sowie simulierte EventSub-Nachrichten.
 
@@ -49,6 +49,7 @@ Zusätzlich bestanden: JavaScript-Syntaxprüfung, Syntaxprüfung des Bash-Starts
 32. Windows-Schließen-Option mit Standardwert, Eingabeprüfung und Speicherung über Neustarts.
 33. Spotify-Anmeldung aus dem Windows-Fenster im Standardbrowser: Einmal-Link mit Ablauf, Browser-Bindung und unveränderte PKCE-Prüfung.
 34. Kräftigere Cover-Farben, Kontrast und Erhalt neutraler Grautöne.
+35. Chatvorlage lässt sich bei fehlender Spotify-Freigabe speichern; Reward und Schalter bleiben erhalten.
 
 ## Grenzen der Prüfung
 

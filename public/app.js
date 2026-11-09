@@ -356,10 +356,11 @@ function bind() {
   };
   $('connection-form').onsubmit = async e => {
     e.preventDefault(); concealClientId(); $('connect').disabled = true;
+    const profile = active(), credentials = { label: $('profile-label').value, clientId: $('client-id').value.trim() };
     try {
-      await flushSave(); const p = await api(`/api/profiles/${activeId}`, 'PATCH', { label: $('profile-label').value, clientId: $('client-id').value.trim() });
-      Object.assign(active(), p); refreshProfileList(); renderConnection();
-      await startSpotifyConnection(p.id);
+      await flushSave(); const p = await api(`/api/profiles/${profile.id}`, 'PATCH', credentials);
+      Object.assign(profile, p); refreshProfileList(); if (p.id === activeId) renderConnection();
+      await startSpotifyConnection(profile.id);
     } catch (err) { message(err.message, true); $('message').scrollIntoView({ block: 'nearest' }); }
     finally { $('connect').disabled = false; }
   };
