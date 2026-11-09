@@ -32,11 +32,16 @@ export function bindSongRequests({ api, connectSpotify }) {
     const option = $('requests-reward').selectedOptions[0];
     const valid = !!option?.value && !option.disabled;
     const locked = !state || busy || offline;
+    const chatEnabled = $('requests-chat-enabled').checked;
     $('requests-enabled').disabled = locked || !state.enabled && !(state.spotifyReady && state.twitchConnected && valid);
     $('requests-spotify').disabled = locked;
     $('requests-connect').disabled = locked || !!state.pairing?.code;
-    for (const id of ['requests-disconnect', 'requests-cancel-pairing', 'requests-refresh-rewards', 'requests-create', 'requests-save', 'requests-save-chat', 'requests-template']) $(id).disabled = locked;
-    for (const button of tokenButtons) button.disabled = locked;
+    for (const id of ['requests-disconnect', 'requests-cancel-pairing', 'requests-refresh-rewards', 'requests-create', 'requests-save', 'requests-chat-enabled']) $(id).disabled = locked;
+    $('requests-chat-form').hidden = !chatEnabled;
+    $('requests-chat-example').hidden = !chatEnabled;
+    $('requests-chat-silent').hidden = chatEnabled;
+    $('requests-template').disabled = $('requests-save-chat').disabled = locked || !chatEnabled;
+    for (const button of tokenButtons) button.disabled = locked || !chatEnabled;
     const reward = rewards?.find(r => r.id === option?.value);
     $('requests-reward-hint').textContent = reward ? reward.manageable ? 'Bei Erfolg wird die Einlösung bestätigt. Bei eindeutiger Ablehnung gibt Twitch die Punkte zurück.'
       : 'Island Now kann diesen Reward verwenden. Bestätigung oder Rückerstattung der Punkte erfolgt im Twitch-Dashboard.'
@@ -49,6 +54,7 @@ export function bindSongRequests({ api, connectSpotify }) {
     if (badge.textContent !== badgeText) badge.textContent = badgeText;
     badge.dataset.state = data.status;
     $('requests-enabled').checked = data.enabled;
+    $('requests-chat-enabled').checked = data.chatEnabled !== false;
     const status = data.detail || (data.status === 'listening' ? `Wartet auf „${data.reward?.title}“ im Kanal @${data.twitchLogin}.`
       : data.status === 'connecting' ? 'Twitch-Trigger wird verbunden …'
       : !data.spotifyReady ? 'Spotify-Warteschlange freigeben, um Songs einzureihen.'
@@ -96,7 +102,13 @@ export function bindSongRequests({ api, connectSpotify }) {
     const current = ++revision, path = endpoint(), profileId = id, live = () => current === revision;
     busy = true; notice(''); controls();
     try { await task(path, live, profileId); }
-    catch (error) { if (live()) { notice(error.message, true); $('requests-enabled').checked = !!state?.enabled; } }
+    catch (error) {
+      if (live()) {
+        notice(error.message, true);
+        $('requests-enabled').checked = !!state?.enabled;
+        $('requests-chat-enabled').checked = state?.chatEnabled !== false;
+      }
+    }
     finally { if (live()) { busy = false; controls(); } }
   }
   function loadRewards(fresh = false) {
@@ -159,6 +171,13 @@ export function bindSongRequests({ api, connectSpotify }) {
       const data = await api(path, 'PATCH', rewardSettings()); if (live()) { render(data, 'reward'); notice('Reward gespeichert.'); }
     });
   };
+  $('requests-chat-enabled').onchange = event => {
+    const chatEnabled = event.target.checked;
+    action(async (path, live) => {
+      const data = await api(path, 'PATCH', { chatEnabled });
+      if (live()) { render(data); notice(data.chatEnabled ? 'Chatbestätigung eingeschaltet.' : 'Chatbestätigung ausgeschaltet.'); }
+    });
+  };
   $('requests-chat-form').onsubmit = event => {
     event.preventDefault(); const template = $('requests-template').value;
     action(async (path, live) => {
@@ -179,7 +198,7 @@ export function bindSongRequests({ api, connectSpotify }) {
     id = profileId; revision++; state = undefined; rewards = undefined; busy = false; offline = false; historyKey = undefined;
     $('requests-enabled').checked = false; $('requests-config').hidden = true; $('requests-pairing').hidden = true;
     $('requests-disconnect').hidden = true; $('requests-history').hidden = true; $('requests-history-empty').hidden = false; $('requests-twitch-form').hidden = true;
-    $('requests-template').value = ''; $('requests-chat-sender').textContent = 'Twitch-Kanal'; preview();
+    $('requests-chat-enabled').checked = true; $('requests-template').value = ''; $('requests-chat-sender').textContent = 'Twitch-Kanal'; preview();
     $('requests-reward-empty').hidden = false;
     $('requests-client-id').value = ''; $('requests-badge').textContent = '…'; $('requests-badge').removeAttribute('data-state');
     $('requests-status').textContent = 'Einstellungen werden geladen …'; notice(''); controls(); poll();

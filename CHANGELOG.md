@@ -1,5 +1,9 @@
 # Änderungen
 
+## 1.4.3
+
+- Unter **Song Requests → Chat** lässt sich die Erfolgsnachricht im Twitch-Chat pro Spotify-Profil ausschalten. Warteschlange, Verlauf und Abwicklung des Twitch-Rewards funktionieren weiter. Die Nachrichtenvorlage bleibt gespeichert.
+
 ## 1.4.2
 
 - Song Requests suchen auch nach dem Titel allein, beispielsweise `Levels`. Titel und Interpret werden nach Übereinstimmung ausgewertet. Gleich passende Titel werden nach Spotify-Beliebtheit ausgewählt, sofern der Wert verfügbar ist. Sonst gilt die Reihenfolge der Spotify-Treffer.
