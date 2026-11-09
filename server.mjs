@@ -7,7 +7,8 @@ import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { createStore } from './lib/store.mjs';
 import { DEFAULT_SETTINGS, settingsFrom } from './lib/model.mjs';
-import { SpotifyService } from './lib/spotify.mjs';
+import { QUEUE_SCOPE, SpotifyService } from './lib/spotify.mjs';
+import { SongRequests } from './lib/song-requests.mjs';
 import { CoverCache } from './lib/covers.mjs';
 import { UpdateService } from './lib/updates.mjs';
 import { APP_VERSION } from './lib/version.mjs';
@@ -26,9 +27,10 @@ function openBrowser(url) {
   p.on('error', () => {}); p.unref();
 }
 
-export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || join(root, '.data')), fetchFn = fetch, port = 17653, now = Date.now, updateOptions = {} } = {}) {
+export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || join(root, '.data')), fetchFn = fetch, port = 17653, now = Date.now, updateOptions = {}, connectWebSocket } = {}) {
   if (!store.state.profiles.length) { store.state.profiles.push(newProfile()); store.save(); }
-  const spotify = new SpotifyService({ store, fetchFn, now });
+  const spotify = new SpotifyService({ store, fetchFn, now, onAuthChange: p => songRequests.sync(p) });
+  const songRequests = new SongRequests({ store, spotify, fetchFn, now, connectWebSocket });
   const covers = new CoverCache(fetchFn);
   const updates = new UpdateService({ root, ...updateOptions });
   const csrf = random(); const pending = new Map(); const reveals = new Map();
@@ -48,6 +50,7 @@ export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || j
   }
   const staticFiles = {
     '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/styles.css': ['styles.css', 'text/css'],
+    '/song-requests.js': ['song-requests.js', 'text/javascript'],
     '/widget.js': ['widget.js', 'text/javascript'], '/widget-state.mjs': ['widget-state.mjs', 'text/javascript'], '/widget.css': ['widget.css', 'text/css'],
     '/themes.mjs': ['themes.mjs', 'text/javascript'], '/cover-colors.mjs': ['cover-colors.mjs', 'text/javascript'],
     '/retro-player.mjs': ['retro-player.mjs', 'text/javascript'],
@@ -82,6 +85,25 @@ export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || j
         if (data.clientId && !validClientId(data.clientId)) return json(res, 400, { error: 'Die Client-ID muss aus 32 Hex-Zeichen bestehen.' });
         const p = newProfile(data.label, data.clientId || ''); store.state.profiles.push(p); store.save(); return json(res, 201, publicProfile(p));
       }
+      const requestMatch = path.match(/^\/api\/profiles\/([a-f0-9]{24})\/song-requests(?:\/(twitch-connect|twitch-disconnect|twitch-cancel|rewards|refresh-rewards))?$/);
+      if (requestMatch) {
+        const p = store.state.profiles.find(x => x.id === requestMatch[1]), action = requestMatch[2];
+        if (!p) return json(res, 404, { error: 'Profil nicht gefunden.' });
+        if (!action && req.method === 'GET') return json(res, 200, songRequests.view(p));
+        if (!action && req.method === 'PATCH') return json(res, 200, await songRequests.update(p, await body(req)));
+        if (action === 'rewards' && req.method === 'GET') return json(res, 200, await songRequests.rewards(p));
+        if (req.method === 'POST') {
+          const data = await body(req);
+          if (action === 'twitch-connect') await songRequests.twitch.beginPair(p, data.clientId);
+          else if (action === 'twitch-disconnect') songRequests.disconnect(p);
+          else if (action === 'twitch-cancel') songRequests.twitch.cancelPair(p);
+          else if (action === 'rewards') return json(res, 201, await songRequests.createReward(p, data));
+          else if (action === 'refresh-rewards') return json(res, 200, await songRequests.rewards(p, true));
+          else return json(res, 405, { error: 'Methode nicht erlaubt.' });
+          return json(res, 200, songRequests.view(p));
+        }
+        return json(res, 405, { error: 'Methode nicht erlaubt.' });
+      }
       const profileMatch = path.match(/^\/api\/profiles\/([a-f0-9]{24})(?:\/(connect|disconnect|rotate|reveal|playback))?$/);
       if (profileMatch) {
         const p = store.state.profiles.find(x => x.id === profileMatch[1]);
@@ -96,15 +118,18 @@ export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || j
           store.save(); return json(res, 200, publicProfile(p));
         }
         if (action === 'connect' && req.method === 'POST') {
+          const input = await body(req);
           if (!validClientId(p.clientId)) return json(res, 400, { error: 'Zuerst deine Spotify Client-ID speichern.' });
           for (const [key, val] of pending) if (val.expires < now()) pending.delete(key);
           if (pending.size > 50) return json(res, 429, { error: 'Zu viele Anmeldeversuche. Zehn Minuten warten.' });
           const state = random(), verifier = randomBytes(64).toString('base64url'), browserNonce = random();
           const cookieName = `island_oauth_${state.slice(0, 12)}`;
-          pending.set(state, { verifier, browserNonce, cookieName, profileId: p.id, clientId: p.clientId, authVersion: p.authVersion, expires: now() + 600000 });
+          const requestQueue = input.purpose === 'song-requests';
+          const scopes = ['user-read-currently-playing', ...(requestQueue || spotify.canQueue(p) ? [QUEUE_SCOPE] : [])];
+          pending.set(state, { verifier, browserNonce, cookieName, profileId: p.id, clientId: p.clientId, authVersion: p.authVersion, scopes, requestQueue, expires: now() + 600000 });
           res.setHeader('Set-Cookie', `${cookieName}=${browserNonce}; HttpOnly; SameSite=Lax; Path=/auth/callback; Max-Age=600`);
           const auth = new URL('https://accounts.spotify.com/authorize');
-          auth.search = new URLSearchParams({ client_id: p.clientId, response_type: 'code', redirect_uri: callback(), scope: 'user-read-currently-playing', state, code_challenge_method: 'S256', code_challenge: createHash('sha256').update(verifier).digest('base64url'), show_dialog: 'true' });
+          auth.search = new URLSearchParams({ client_id: p.clientId, response_type: 'code', redirect_uri: callback(), scope: scopes.join(' '), state, code_challenge_method: 'S256', code_challenge: createHash('sha256').update(verifier).digest('base64url'), show_dialog: 'true' });
           return json(res, 200, { url: auth.href });
         }
         if (action === 'disconnect' && req.method === 'POST') {
@@ -132,9 +157,11 @@ export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || j
         try { tokens = await spotify.token({ grant_type: 'authorization_code', code, redirect_uri: callback(), client_id: transaction.clientId, code_verifier: transaction.verifier }); }
         catch { return errorRedirect(res, 'oauth_failed'); }
         if (typeof tokens.refresh_token !== 'string' || !tokens.refresh_token || p.authVersion !== transaction.authVersion) return errorRedirect(res, 'oauth_failed');
+        const scopes = typeof tokens.scope === 'string' ? tokens.scope.split(/\s+/).filter(Boolean) : transaction.scopes;
+        if (!transaction.scopes.every(scope => scopes.includes(scope))) return errorRedirect(res, 'oauth_scope');
         p.accessToken = tokens.access_token; p.refreshToken = tokens.refresh_token; p.expiresAt = now() + tokens.expires_in * 1000;
-        p.connectedAt = now(); p.authVersion = random(); spotify.clear(p.id); store.save();
-        return redirect(res, `/?connected=${p.id}`);
+        p.spotifyScopes = scopes; p.connectedAt = now(); p.authVersion = random(); spotify.clear(p.id); store.save(); songRequests.sync(p);
+        return redirect(res, `/?connected=${p.id}${transaction.requestQueue ? '#song-requests' : ''}`);
       }
       const overlayMatch = path.match(/^\/api\/overlay\/([A-Za-z0-9_-]{43})$/);
       if (overlayMatch && req.method === 'GET') {
@@ -166,10 +193,11 @@ export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || j
     }
   });
   server.requestTimeout = 20000; server.headersTimeout = 15000;
-  return { server, store, spotify, updates, get origin() { return origin; },
+  server.on('close', () => songRequests.stop());
+  return { server, store, spotify, songRequests, updates, get origin() { return origin; },
     async start() {
       await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
-      origin = `http://127.0.0.1:${server.address().port}`; return origin;
+      origin = `http://127.0.0.1:${server.address().port}`; songRequests.start(); return origin;
     },
     async close() { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); },
   };

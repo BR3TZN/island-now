@@ -1,10 +1,10 @@
-# Prüfung von Island Now 1.2.3
+# Prüfung von Island Now 1.3.0
 
-Stand: 21.10.2026. Laufzeit der automatisierten Prüfungen: Node.js 24 unter Linux.
+Stand: 09.11.2026. Laufzeit der automatisierten Prüfungen: Node.js 24 unter Linux.
 
-**Ergebnis: 24 Tests bestanden, 0 fehlgeschlagen.**
+**Ergebnis: 31 Tests bestanden, 0 fehlgeschlagen.**
 
-Version 1.2.3 ersetzt den LINAMP-Look durch Winamp Classic. Die Gestaltung wird aus dem tatsächlichen Canvas-Zeichencode in 275 × 116 Pixeln und skaliert ausgegeben und visuell mit der Vorlage verglichen. Zusätzliche Zustände: lange Titel, Pause, ausgeblendete Zeit/Fortschrittsleiste, Cover-Akzentfarben und reduzierte Bewegung. Schrift und Ziffern benötigen keine installierten Systemschriften. Statische Routen und DOM-Verweise umfassen das neue Renderer-Modul.
+Version 1.3.0 ergänzt optionale Twitch Song Requests. Die neuen Integrationstests verwenden simulierte Spotify- und Twitch-Antworten sowie simulierte EventSub-Nachrichten. Die sechs vorhandenen Widget-Designs sind weiter Teil der Tests.
 
 Die Windows-Freigabe enthält weiterhin Kompilierung, offiziellen Node-Download, privaten Tray-Start sowie Update und Rollback mit Erhalt von `.data` und `runtime/`.
 
@@ -38,9 +38,16 @@ Zusätzlich bestanden: JavaScript-Syntaxprüfung, Syntaxprüfung des Bash-Starts
 22. Abweisung fremder Download-Adressen, Entwürfe und fehlender Prüfsummen.
 23. Verständlicher Zustand bei fehlendem Release bzw. ungeeignetem Startmodus.
 24. Schutz der Update-Endpunkte durch Origin- und CSRF-Prüfung.
+25. Separate Spotify-Freigabe für Song Requests und Erhalt der bisherigen Anmeldung bei verweigerter Berechtigung.
+26. Twitch-Gerätecode, verschlüsselte Tokens, Schutz vor fremden Schreibanfragen und einmalige Erneuerung paralleler Token-Anfragen.
+27. Reward-Auswahl und -Erstellung, direkter Track-Link, Titelsuche, Chatbestätigung und keine doppelte Einreihung nach Neustart.
+28. Ablehnung fremder URLs, Behandlung von fehlenden Spotify-Geräten und unklaren Antworten, getrennte Anzeige eines Chatfehlers, Punkteerstattung für verwaltete Rewards.
+29. Wechsel des EventSub-Servers ohne doppelte Anmeldung sowie Stopp bei widerrufener Twitch-Freigabe.
+30. Ausschalten während der Titelsuche unterbindet das Einreihen und die Chatbestätigung.
+31. Freitext findet Titel und Interpret in beiden Reihenfolgen, bevorzugt den genauen Titel und reiht keine unpassenden Ergebnisse ein.
 
 ## Grenzen der Prüfung
 
-Keine echte Spotify-Client-ID und keine persönliche Kontofreigabe lagen in der Testumgebung vor. Die Spotify-Anbindung wurde mit simulierten Antworten geprüft. Die konkrete OBS-Darstellung und das Node-Fortschrittsfenster wurden nicht visuell auf einem Windows-Desktop geprüft. Die visuelle Prüfung des Skins verwendet dessen tatsächlichen Canvas-Renderer außerhalb von OBS. ARM64-Auswahl und Download-Hashes sind hinterlegt; ein tatsächlicher Lauf auf ARM64-Hardware ist nicht Bestandteil des x64-Windows-Workflows.
+Es wurden keine echten Twitch- oder Spotify-Konten verbunden und keine Chatnachrichten gesendet. Die OBS-Darstellung und das Node-Fortschrittsfenster wurden nicht visuell auf einem Windows-Desktop geprüft. ARM64-Auswahl und Download-Hashes sind hinterlegt; ein tatsächlicher Lauf auf ARM64-Hardware ist nicht Bestandteil des x64-Windows-Workflows.
 
 Bereits für 1.2.1 bestanden die GitHub-Prüfungen für Windows-Kompilierung, Tray-Start, Update und Rollback. Der Nutzer hat das tatsächliche Update auf seinem PC bestätigt. Die Speicherung der sechs Designs ist automatisiert geprüft. Die genannten Windows-Prüfungen sind Freigabebedingungen des Release-Workflows.
