@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 [assembly: System.Reflection.AssemblyTitle("Island Now")]
-[assembly: System.Reflection.AssemblyVersion("1.4.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.4.1.0")]
 
 internal static class IslandNow {
     [STAThread] private static void Main(string[] args) {
@@ -77,14 +77,14 @@ internal sealed class TrayContext : ApplicationContext {
         ContextMenuStrip menu = new ContextMenuStrip();
         status = new ToolStripMenuItem("Island Now startet ..."); status.Enabled = false; menu.Items.Add(status);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Fenster öffnen", null, delegate { OpenInterface(); });
+        menu.Items.Add("Fenster öffnen", null, delegate { OpenFromTray(); });
         menu.Items.Add("Im Browser öffnen", null, delegate { IslandNow.OpenBrowser(url); });
-        menu.Items.Add("Nach Updates suchen", null, delegate { OpenInterface("#updates"); });
+        menu.Items.Add("Nach Updates suchen", null, delegate { OpenFromTray("#updates"); });
         menu.Items.Add("Neu starten", null, delegate { StopNode(); StartNode(); });
         menu.Items.Add("Protokoll oeffnen", null, delegate { try { Process.Start("notepad.exe", Quote(logPath)); } catch { } });
         menu.Items.Add(new ToolStripSeparator()); menu.Items.Add("Beenden", null, delegate { ExitThread(); });
         tray = new NotifyIcon(); tray.Icon = MakeIcon(); tray.Text = "Island Now - startet"; tray.ContextMenuStrip = menu; tray.Visible = true;
-        tray.DoubleClick += delegate { OpenInterface(); };
+        tray.DoubleClick += delegate { OpenFromTray(); };
         timer = new System.Windows.Forms.Timer(); timer.Interval = 750; timer.Tick += Tick;
         StartNode(); timer.Start();
     }
@@ -146,7 +146,14 @@ internal sealed class TrayContext : ApplicationContext {
             tray.ShowBalloonTip(6000, "Island Now konnte nicht starten", "Rechtsklick und Protokoll oeffnen.", ToolTipIcon.Error);
         }
     }
+    private void OpenFromTray(string fragment = null) {
+        // Let the tray menu release activation before bringing the requested window forward.
+        var ui = SynchronizationContext.Current as WindowsFormsSynchronizationContext;
+        if (ui != null) ui.Post(delegate { OpenInterface(fragment); }, null);
+        else OpenInterface(fragment);
+    }
     private void OpenInterface(string fragment = null, bool reload = false) {
+        if (disposed) return;
         if (!ready) { opening = true; if (fragment != null) openFragment = fragment; return; }
         try { ShowDesktop(fragment, reload); }
         catch (Exception error) { Log(error.Message); IslandNow.OpenBrowser(url + "/" + fragment); }

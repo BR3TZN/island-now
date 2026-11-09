@@ -38,15 +38,33 @@ using System.Runtime.InteropServices;
 public static class IslandDesktopSmoke {
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr window, uint message, UIntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr window);
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr window);
+    [DllImport("user32.dll")] public static extern bool IsZoomed(IntPtr window);
+    [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr window, int command);
+    [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr window, int x, int y, int width, int height, bool repaint);
+    [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
+    [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr window, out WindowRect rect);
+    [StructLayout(LayoutKind.Sequential)] private struct WindowRect { public int Left, Top, Right, Bottom; }
+    public static bool OnMonitor(IntPtr window) { return MonitorFromWindow(window, 0) != IntPtr.Zero; }
+    public static string Bounds(IntPtr window) {
+        WindowRect rect;
+        if (!GetWindowRect(window, out rect)) throw new InvalidOperationException("GetWindowRect failed.");
+        return String.Format("{0},{1},{2},{3}", rect.Left, rect.Top, rect.Right, rect.Bottom);
+    }
 }
 '@
+    function Send-SystemCommand([IntPtr]$window, [uint32]$command) {
+        if (-not [IslandDesktopSmoke]::PostMessage($window, 0x112, [UIntPtr]::new($command), [IntPtr]::Zero)) { throw "Fensterbefehl fehlgeschlagen: $command" }
+    }
     function Open-Desktop {
         $duplicate = [Diagnostics.Process]::Start($startInfo)
         try { if (-not $duplicate.WaitForExit(5000) -or $duplicate.ExitCode -ne 0) { throw 'Zweiter Start hat das Fenster nicht aktiviert.' } }
         finally { if (-not $duplicate.HasExited) { $duplicate.Kill() }; $duplicate.Dispose() }
-        Wait-DesktopCondition 'Fenster wurde nicht angezeigt' {
+        Wait-DesktopCondition 'Fenster wurde nicht sichtbar auf einem Bildschirm wiederhergestellt' {
             $nativeProcess.Refresh()
-            $nativeProcess.MainWindowHandle -ne [IntPtr]::Zero
+            $handle = $nativeProcess.MainWindowHandle
+            $handle -ne [IntPtr]::Zero -and [IslandDesktopSmoke]::IsWindowVisible($handle) -and
+                -not [IslandDesktopSmoke]::IsIconic($handle) -and [IslandDesktopSmoke]::OnMonitor($handle)
         }
         return $nativeProcess.MainWindowHandle
     }
@@ -68,22 +86,51 @@ public static class IslandDesktopSmoke {
         }
         Write-Output 'WebView2 Runtime nicht vorhanden; Windows-Ersatzansicht geprueft.'
     }
-    # WM_SYSCOMMAND + SC_MINIMIZE/SC_CLOSE matches the native caption buttons.
-    if (-not [IslandDesktopSmoke]::PostMessage($window, 0x112, [UIntPtr]::new([uint32]0xF020), [IntPtr]::Zero)) { throw 'Minimieren konnte nicht ausgeloest werden.' }
+    if (-not [IslandDesktopSmoke]::MoveWindow($window, 40, 60, 760, 540, $true)) { throw 'Fenster konnte nicht platziert werden.' }
+    $normalBounds = [IslandDesktopSmoke]::Bounds($window)
+    # SC_MINIMIZE matches the caption button.
+    Send-SystemCommand $window 0xF020
     Wait-DesktopCondition 'Minimieren hat das Fenster nicht ins Tray ausgeblendet' { -not [IslandDesktopSmoke]::IsWindowVisible($window) }
     if ($nativeProcess.HasExited -or (Invoke-RestMethod "$origin/api/state" -TimeoutSec 2).app -ne 'Island Now') { throw 'Minimieren hat den Server beendet.' }
-
     if ((Open-Desktop) -ne $window) { throw 'Minimieren hat das Fenster geschlossen statt ausgeblendet.' }
+    Wait-DesktopCondition 'Position oder Groesse des normalen Fensters hat sich veraendert' {
+        -not [IslandDesktopSmoke]::IsZoomed($window) -and [IslandDesktopSmoke]::Bounds($window) -eq $normalBounds
+    }
+
+    Send-SystemCommand $window 0xF030
+    Wait-DesktopCondition 'Fenster konnte nicht maximiert werden' { [IslandDesktopSmoke]::IsZoomed($window) }
+    $maximizedBounds = [IslandDesktopSmoke]::Bounds($window)
+    # A native minimize can bypass the caption button, e.g. from a Windows shortcut.
+    if (-not [IslandDesktopSmoke]::ShowWindowAsync($window, 6)) { throw 'Natives Minimieren konnte nicht ausgeloest werden.' }
+    Wait-DesktopCondition 'Natives Minimieren hat das Fenster nicht ausgeblendet' { -not [IslandDesktopSmoke]::IsWindowVisible($window) }
+    if ((Open-Desktop) -ne $window) { throw 'Natives Minimieren hat das Fenster geschlossen.' }
+    Wait-DesktopCondition 'Maximiertes Fenster wurde nicht an derselben Position wiederhergestellt' {
+        [IslandDesktopSmoke]::IsZoomed($window) -and [IslandDesktopSmoke]::Bounds($window) -eq $maximizedBounds
+    }
+    Send-SystemCommand $window 0xF120
+    Wait-DesktopCondition 'Maximieren hat die vorherige normale Fenstergroesse veraendert' {
+        -not [IslandDesktopSmoke]::IsZoomed($window) -and [IslandDesktopSmoke]::Bounds($window) -eq $normalBounds
+    }
+
+    # Simulate the old rectangle lying outside every available monitor.
+    if (-not [IslandDesktopSmoke]::MoveWindow($window, 30000, 30000, 760, 540, $true)) { throw 'Fenster konnte nicht ausserhalb des Bildschirms platziert werden.' }
+    Wait-DesktopCondition 'Testfenster liegt nicht ausserhalb des Bildschirms' { -not [IslandDesktopSmoke]::OnMonitor($window) }
+    Send-SystemCommand $window 0xF020
+    Wait-DesktopCondition 'Fenster ausserhalb des Bildschirms wurde nicht ausgeblendet' { -not [IslandDesktopSmoke]::IsWindowVisible($window) }
+    if ((Open-Desktop) -ne $window) { throw 'Fenster ausserhalb des Bildschirms wurde neu erstellt.' }
+
+    $trayBounds = [IslandDesktopSmoke]::Bounds($window)
     Set-CloseAction 'tray'
-    if (-not [IslandDesktopSmoke]::PostMessage($window, 0x112, [UIntPtr]::new([uint32]0xF060), [IntPtr]::Zero)) { throw 'Schliessen konnte nicht ausgeloest werden.' }
+    Send-SystemCommand $window 0xF060
     Wait-DesktopCondition 'Schliessen mit Tray-Option hat das Fenster nicht ausgeblendet' { -not [IslandDesktopSmoke]::IsWindowVisible($window) }
     if ($nativeProcess.HasExited -or (Invoke-RestMethod "$origin/api/state" -TimeoutSec 2).desktop.closeAction -ne 'tray') { throw 'Schliessen mit Tray-Option hat den Server beendet.' }
 
     if ((Open-Desktop) -ne $window) { throw 'Die Tray-Option hat das Fenster geschlossen statt ausgeblendet.' }
+    Wait-DesktopCondition 'Schliessen ins Tray hat die Fensterposition veraendert' { [IslandDesktopSmoke]::Bounds($window) -eq $trayBounds }
     Set-CloseAction 'exit'
-    if (-not [IslandDesktopSmoke]::PostMessage($window, 0x112, [UIntPtr]::new([uint32]0xF060), [IntPtr]::Zero)) { throw 'Beenden konnte nicht ausgeloest werden.' }
+    Send-SystemCommand $window 0xF060
     Wait-DesktopCondition 'Schliessen mit Beenden-Option hat die App nicht beendet' { $nativeProcess.HasExited }
-    Write-Output 'Windows-Fenster, Minimieren, Wiederherstellen und beide Schliessen-Optionen geprueft.'
+    Write-Output 'Windows-Fenster: Wiederherstellung von Position, Groesse und maximiertem Zustand, Rueckkehr auf einen sichtbaren Bildschirm und beide Schliessen-Optionen geprueft.'
 }
 
 try {
