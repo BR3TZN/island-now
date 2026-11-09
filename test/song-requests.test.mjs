@@ -167,7 +167,7 @@ function providers() {
     if (path.pathname === '/v1/search') {
       calls.searches.push(path.searchParams.get('q'));
       assert.equal(path.searchParams.get('type'), 'track'); assert.equal(path.searchParams.get('limit'), '10');
-      return json({ tracks: { items: [{ ...spotifyTrack, id: 'x'.repeat(22), artists: [{ name: 'Cover Artist' }] }, spotifyTrack] } });
+      return json({ tracks: { items: options.searchItems || [{ ...spotifyTrack, id: 'x'.repeat(22), artists: [{ name: 'Cover Artist' }] }, spotifyTrack] } });
     }
     if (path.pathname === '/v1/me/player/queue') {
       assert.equal(init.method, 'POST'); calls.queued.push(path.searchParams.get('uri')); return json({}, options.queueStatus);
@@ -246,6 +246,28 @@ test('Rejected, uncertain and chat-dropped song requests are reported without do
   const other = await enable(f, 'other');
   other.redemption('external', `spotify:track:${trackId}`, { reward: { id: 'other' } }); await f.drain();
   assert.equal(calls.settled.length, 3, 'Do not manage a reward created by a different app');
+});
+
+test('Free-text requests find the exact title and artist in either order without queueing unrelated results', async t => {
+  const { calls, options, fetchFn } = providers(), f = await fixture(t, fetchFn);
+  connectSpotify(f.p); connectTwitch(f.p);
+  const socket = await enable(f);
+  const levels = { id: 'a'.repeat(22), name: 'Levels', artists: [{ name: 'Avicii' }], is_playable: true };
+  options.searchItems = [
+    { ...levels, id: 'b'.repeat(22), is_playable: false },
+    { ...levels, id: 'c'.repeat(22), artists: [{ name: 'Cover Artist' }] },
+    { ...levels, id: 'd'.repeat(22), name: 'Levels - Radio Edit' },
+    levels,
+  ];
+  socket.redemption('artist-first', '  Avicii  Levels  ');
+  socket.redemption('title-first', 'Levels Avicii');
+  socket.redemption('no-matching-title', 'Avicii Ein anderer Titel');
+  await f.drain();
+  assert.deepEqual(calls.searches, ['Avicii Levels', 'Levels Avicii', 'Avicii Ein anderer Titel']);
+  assert.deepEqual(calls.queued, Array(2).fill(`spotify:track:${levels.id}`));
+  assert.deepEqual(calls.chat.map(entry => entry.message), Array(2).fill('Danke @zuschauer: Levels – Avicii'));
+  assert.deepEqual((await f.state()).recent.map(entry => entry.status), ['rejected', 'queued', 'queued']);
+  assert.deepEqual(calls.settled.at(-1), { id: 'no-matching-title', status: 'CANCELED' });
 });
 
 test('EventSub migrates without resubscribing and stops when Twitch revokes authorization', async t => {

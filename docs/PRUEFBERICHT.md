@@ -2,7 +2,7 @@
 
 Stand: 09.11.2026. Laufzeit der automatisierten Prüfungen: Node.js 24 unter Linux.
 
-**Ergebnis: 30 Tests bestanden, 0 fehlgeschlagen.**
+**Ergebnis: 31 Tests bestanden, 0 fehlgeschlagen.**
 
 Version 1.3.0 ergänzt optionale Twitch Song Requests. Die neuen Integrationstests verwenden simulierte Spotify- und Twitch-Antworten sowie simulierte EventSub-Nachrichten. Die sechs vorhandenen Widget-Designs sind weiter Teil der Tests.
 
@@ -44,6 +44,7 @@ Zusätzlich bestanden: JavaScript-Syntaxprüfung, Syntaxprüfung des Bash-Starts
 28. Ablehnung fremder URLs, Behandlung von fehlenden Spotify-Geräten und unklaren Antworten, getrennte Anzeige eines Chatfehlers, Punkteerstattung für verwaltete Rewards.
 29. Wechsel des EventSub-Servers ohne doppelte Anmeldung sowie Stopp bei widerrufener Twitch-Freigabe.
 30. Ausschalten während der Titelsuche unterbindet das Einreihen und die Chatbestätigung.
+31. Freitext findet Titel und Interpret in beiden Reihenfolgen, bevorzugt den genauen Titel und reiht keine unpassenden Ergebnisse ein.
 
 ## Grenzen der Prüfung
 
