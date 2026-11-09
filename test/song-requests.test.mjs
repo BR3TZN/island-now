@@ -222,6 +222,24 @@ test('Select or create a reward, queue Spotify URLs and title/artist, confirm an
   assert.equal(calls.queued.length, 2); assert.equal((await f.state()).status, 'off');
 });
 
+test('Chat template can be saved without changing the reward while Spotify needs reconnecting', async t => {
+  const { calls, fetchFn } = providers(), f = await fixture(t, fetchFn);
+  connectSpotify(f.p); connectTwitch(f.p);
+  await enable(f);
+  connectSpotify(f.p, false);
+  const template = 'Wunsch von {user}: {titel}';
+  assert.equal((await f.call(f.requests, 'PATCH', { template: '  ' })).status, 400);
+  const save = await f.call(f.requests, 'PATCH', { template });
+  assert.equal(save.status, 200);
+  const state = await save.json();
+  assert.equal(state.template, template);
+  assert.equal(state.enabled, true);
+  assert.equal(state.status, 'spotify_required');
+  assert.equal(state.reward.id, 'mine');
+  assert.equal(createStore(f.dir).state.profiles[0].songRequests.template, template);
+  assert.equal(calls.subscriptions.length, 1);
+});
+
 test('Rejected, uncertain and chat-dropped song requests are reported without double queueing or false success', async t => {
   const { calls, options, fetchFn } = providers(), f = await fixture(t, fetchFn);
   connectSpotify(f.p); connectTwitch(f.p);

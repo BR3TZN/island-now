@@ -11,7 +11,16 @@ export function readableAccent(rgb, background = .008, contrast = 4.5) {
   return hex(out);
 }
 
-export function dominantAccent(pixels, fallback = '#1ed760') {
+function vividAccent(rgb) {
+  const max = Math.max(...rgb), min = Math.min(...rgb), span = max - min;
+  if (!max || span / max < .15) return readableAccent(rgb);
+  // Lift the value first so a dark cover keeps its hue instead of turning pastel.
+  const saturation = clamp(span / max * 1.22 + .08, .45, .96);
+  const value = clamp(max * 1.18, 222, 255);
+  return readableAccent(rgb.map(c => value * (1 - saturation * (max - c) / span)));
+}
+
+export function dominantAccent(pixels, fallback = '#1ed760', { vivid = false } = {}) {
   const data = pixels?.data;
   if (!data || data.length < 4) return fallback;
   const buckets = new Map(); let count = 0, colorful = 0, neutralCount = 0; const neutral = [0, 0, 0];
@@ -33,5 +42,5 @@ export function dominantAccent(pixels, fallback = '#1ed760') {
   const candidates = [...buckets.values()].filter(b => b.count >= Math.max(1, count * .015) && (!preferColor || b.saturation / b.count > .2));
   const best = candidates.sort((a, b) => score(b) - score(a))[0];
   function score(b) { return b.count * (.65 + b.saturation / b.count * 1.4) * (.65 + b.brightness / b.count * .35); }
-  return best ? readableAccent(best.rgb.map(c => c / best.count)) : fallback;
+  return best ? (vivid ? vividAccent : readableAccent)(best.rgb.map(c => c / best.count)) : fallback;
 }

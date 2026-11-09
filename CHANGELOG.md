@@ -1,5 +1,11 @@
 # Änderungen
 
+## 1.4.0
+
+- Eigene Ansichten für Widget, Song Requests, Verbindungen und Einstellungen. Song Requests hat Tabs für Einrichtung, Chat und Verlauf, mit sichtbarem Annahmestatus, Chatvorschau und getrenntem Speichern von Reward und Nachricht.
+- Island Now öffnet unter Windows ein eigenes Fenster. Minimieren blendet es ins Tray aus. „X“ beendet die App standardmäßig; unter Einstellungen → Windows-Fenster lässt sich dafür auch der Tray wählen. Spotify-Anmeldungen öffnen weiter den Standardbrowser.
+- Cover-Akzente leuchten kräftiger. Aktive Tabs, Hauptaktionen, Schalter und Statusanzeigen sind deutlicher erkennbar.
+
 ## 1.3.0
 
 - Optionale Twitch Song Requests pro Spotify-Profil. Der Schalter ist nach dem Update aus. Bestehende Rewards können weiterhin von Streamer.bot verarbeitet werden.

@@ -33,7 +33,7 @@ function updateAccent() {
     const canvas = document.createElement('canvas'); canvas.width = canvas.height = 48;
     const context = canvas.getContext('2d', { willReadFrequently: true });
     context.drawImage(image, 0, 0, 48, 48);
-    const accent = dominantAccent(context.getImageData(0, 0, 48, 48), fallback);
+    const accent = dominantAccent(context.getImageData(0, 0, 48, 48), fallback, { vivid: true });
     coverColors.set(url, accent); if (coverColors.size > 24) coverColors.delete(coverColors.keys().next().value);
     applyAccent(accent, 'cover');
   } catch { applyAccent(fallback, 'fallback'); }

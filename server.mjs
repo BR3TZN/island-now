@@ -27,13 +27,13 @@ function openBrowser(url) {
   p.on('error', () => {}); p.unref();
 }
 
-export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || join(root, '.data')), fetchFn = fetch, port = 17653, now = Date.now, updateOptions = {}, connectWebSocket } = {}) {
+export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || join(root, '.data')), fetchFn = fetch, port = 17653, now = Date.now, updateOptions = {}, desktopOptions = {}, connectWebSocket } = {}) {
   if (!store.state.profiles.length) { store.state.profiles.push(newProfile()); store.save(); }
   const spotify = new SpotifyService({ store, fetchFn, now, onAuthChange: p => songRequests.sync(p) });
   const songRequests = new SongRequests({ store, spotify, fetchFn, now, connectWebSocket });
   const covers = new CoverCache(fetchFn);
   const updates = new UpdateService({ root, ...updateOptions });
-  const csrf = random(); const pending = new Map(); const reveals = new Map();
+  const csrf = random(); const pending = new Map(); const launches = new Map(); const reveals = new Map();
   let origin = `http://127.0.0.1:${port}`;
   const callback = () => `${origin}/auth/callback`;
   const coverHash = url => createHash('sha256').update(url).digest('hex').slice(0, 16);
@@ -42,6 +42,21 @@ export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || j
   const json = (res, status, data) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data)); };
   const redirect = (res, url, cookie) => { res.writeHead(303, { Location: url, ...(cookie ? { 'Set-Cookie': cookie } : {}) }); res.end(); };
   const errorRedirect = (res, code) => redirect(res, `/?error=${code}`);
+  const desktop = () => ({ available: desktopOptions.enabled === true, closeAction: store.state.desktop?.closeAction === 'tray' ? 'tray' : 'exit' });
+  const clearSpotifyAttempts = p => {
+    for (const map of [pending, launches]) for (const [key, value] of map) if (value.profileId === p.id) map.delete(key);
+  };
+  function beginSpotify(p, requestQueue, external = false) {
+    for (const [key, val] of pending) if (val.expires <= now()) pending.delete(key);
+    if (pending.size >= 50) throw Object.assign(new Error('Zu viele Anmeldeversuche. Zehn Minuten warten.'), { status: 429 });
+    const state = random(), verifier = randomBytes(64).toString('base64url'), browserNonce = random();
+    const cookieName = `island_oauth_${state.slice(0, 12)}`;
+    const scopes = ['user-read-currently-playing', ...(requestQueue || spotify.canQueue(p) ? [QUEUE_SCOPE] : [])];
+    pending.set(state, { verifier, browserNonce, cookieName, profileId: p.id, clientId: p.clientId, authVersion: p.authVersion, scopes, requestQueue, external, expires: now() + 600000 });
+    const auth = new URL('https://accounts.spotify.com/authorize');
+    auth.search = new URLSearchParams({ client_id: p.clientId, response_type: 'code', redirect_uri: callback(), scope: scopes.join(' '), state, code_challenge_method: 'S256', code_challenge: createHash('sha256').update(verifier).digest('base64url'), show_dialog: 'true' });
+    return { url: auth.href, cookie: `${cookieName}=${browserNonce}; HttpOnly; SameSite=Lax; Path=/auth/callback; Max-Age=600` };
+  }
   async function body(req) {
     let size = 0; const chunks = [];
     for await (const chunk of req) { size += chunk.length; if (size > 16384) throw Object.assign(new Error('Anfrage zu groß.'), { status: 413 }); chunks.push(chunk); }
@@ -51,6 +66,7 @@ export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || j
   const staticFiles = {
     '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/styles.css': ['styles.css', 'text/css'],
     '/song-requests.js': ['song-requests.js', 'text/javascript'],
+    '/auth/complete': ['auth-complete.html', 'text/html'],
     '/widget.js': ['widget.js', 'text/javascript'], '/widget-state.mjs': ['widget-state.mjs', 'text/javascript'], '/widget.css': ['widget.css', 'text/css'],
     '/themes.mjs': ['themes.mjs', 'text/javascript'], '/cover-colors.mjs': ['cover-colors.mjs', 'text/javascript'],
     '/retro-player.mjs': ['retro-player.mjs', 'text/javascript'],
@@ -71,7 +87,14 @@ export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || j
         if (req.headers.origin !== origin || !equal(req.headers['x-island-csrf'], csrf)) return json(res, 403, { error: 'Die Browser-Sitzung ist abgelaufen. Seite neu laden.' });
         if (!String(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 415, { error: 'JSON erforderlich.' });
       }
-      if (path === '/api/state' && req.method === 'GET') return json(res, 200, { app: 'Island Now', version: APP_VERSION, csrf, redirectUri: callback(), profiles: store.state.profiles.map(publicProfile) });
+      if (path === '/api/state' && req.method === 'GET') return json(res, 200, { app: 'Island Now', version: APP_VERSION, csrf, redirectUri: callback(), desktop: desktop(), profiles: store.state.profiles.map(publicProfile) });
+      if (path === '/api/desktop' && req.method === 'PATCH') {
+        if (!desktop().available) return json(res, 409, { error: 'Diese Einstellung ist im Windows-Tray-Start verfügbar.' });
+        const { closeAction } = await body(req);
+        if (!['tray', 'exit'].includes(closeAction)) return json(res, 400, { error: 'Ungültige Einstellung für die Schließen-Taste.' });
+        store.state.desktop = { closeAction }; store.save(); desktopOptions.onCloseAction?.(closeAction);
+        return json(res, 200, desktop());
+      }
       if (path === '/api/updates' && req.method === 'GET') return json(res, 200, updates.snapshot);
       if (path === '/api/updates/check' && req.method === 'POST') { await body(req); return json(res, 200, await updates.check()); }
       if (path === '/api/updates/install' && req.method === 'POST') {
@@ -113,34 +136,43 @@ export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || j
           const data = await body(req);
           if ('clientId' in data && data.clientId !== '' && !validClientId(data.clientId)) return json(res, 400, { error: 'Die Client-ID muss aus 32 Hex-Zeichen bestehen.' });
           if ('label' in data) p.label = labelFrom(data.label);
-          if ('clientId' in data && data.clientId !== p.clientId) { spotify.invalidate(p); p.clientId = data.clientId; p.authVersion = random(); for (const [key, val] of pending) if (val.profileId === p.id) pending.delete(key); }
+          if ('clientId' in data && data.clientId !== p.clientId) { spotify.invalidate(p); p.clientId = data.clientId; p.authVersion = random(); clearSpotifyAttempts(p); }
           if (data.settings) p.settings = settingsFrom(data.settings, p.settings);
           store.save(); return json(res, 200, publicProfile(p));
         }
         if (action === 'connect' && req.method === 'POST') {
           const input = await body(req);
           if (!validClientId(p.clientId)) return json(res, 400, { error: 'Zuerst deine Spotify Client-ID speichern.' });
-          for (const [key, val] of pending) if (val.expires < now()) pending.delete(key);
-          if (pending.size > 50) return json(res, 429, { error: 'Zu viele Anmeldeversuche. Zehn Minuten warten.' });
-          const state = random(), verifier = randomBytes(64).toString('base64url'), browserNonce = random();
-          const cookieName = `island_oauth_${state.slice(0, 12)}`;
           const requestQueue = input.purpose === 'song-requests';
-          const scopes = ['user-read-currently-playing', ...(requestQueue || spotify.canQueue(p) ? [QUEUE_SCOPE] : [])];
-          pending.set(state, { verifier, browserNonce, cookieName, profileId: p.id, clientId: p.clientId, authVersion: p.authVersion, scopes, requestQueue, expires: now() + 600000 });
-          res.setHeader('Set-Cookie', `${cookieName}=${browserNonce}; HttpOnly; SameSite=Lax; Path=/auth/callback; Max-Age=600`);
-          const auth = new URL('https://accounts.spotify.com/authorize');
-          auth.search = new URLSearchParams({ client_id: p.clientId, response_type: 'code', redirect_uri: callback(), scope: scopes.join(' '), state, code_challenge_method: 'S256', code_challenge: createHash('sha256').update(verifier).digest('base64url'), show_dialog: 'true' });
-          return json(res, 200, { url: auth.href });
+          if (input.externalBrowser === true && desktop().available) {
+            for (const [key, val] of launches) if (val.expires <= now()) launches.delete(key);
+            if (launches.size >= 50) return json(res, 429, { error: 'Zu viele Anmeldeversuche. Kurz warten.' });
+            const ticket = random(), url = `${origin}/auth/launch/${ticket}`;
+            launches.set(ticket, { profileId: p.id, authVersion: p.authVersion, requestQueue, expires: now() + 120000 });
+            (desktopOptions.openExternal || openBrowser)(url);
+            return json(res, 202, { url, external: true });
+          }
+          const auth = beginSpotify(p, requestQueue);
+          res.setHeader('Set-Cookie', auth.cookie);
+          return json(res, 200, { url: auth.url });
         }
         if (action === 'disconnect' && req.method === 'POST') {
           await body(req); spotify.invalidate(p); p.authVersion = random(); delete p.connectedAt;
-          for (const [key, val] of pending) if (val.profileId === p.id) pending.delete(key);
+          clearSpotifyAttempts(p);
           store.save(); return json(res, 200, publicProfile(p));
         }
         if (action === 'rotate' && req.method === 'POST') { await body(req); p.overlayKey = random(); store.save(); return json(res, 200, publicProfile(p)); }
         if (action === 'reveal' && req.method === 'POST') { await body(req); const stamp = random(); reveals.set(p.id, stamp); return json(res, 200, { ok: true }); }
         if (action === 'playback' && req.method === 'GET') return json(res, 200, playbackView(p, await spotify.playback(p)));
         return json(res, 405, { error: 'Methode nicht erlaubt.' });
+      }
+      const launch = path.match(/^\/auth\/launch\/([A-Za-z0-9_-]{43})$/);
+      if (launch && req.method === 'GET') {
+        const attempt = launches.get(launch[1]); launches.delete(launch[1]);
+        const p = attempt && store.state.profiles.find(profile => profile.id === attempt.profileId);
+        if (!p || attempt.expires <= now() || p.authVersion !== attempt.authVersion || !validClientId(p.clientId)) return errorRedirect(res, 'oauth_state');
+        const auth = beginSpotify(p, attempt.requestQueue, true);
+        return redirect(res, auth.url, auth.cookie);
       }
       if (path === '/auth/callback' && req.method === 'GET') {
         const state = url.searchParams.get('state') || ''; const transaction = pending.get(state);
@@ -161,7 +193,7 @@ export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || j
         if (!transaction.scopes.every(scope => scopes.includes(scope))) return errorRedirect(res, 'oauth_scope');
         p.accessToken = tokens.access_token; p.refreshToken = tokens.refresh_token; p.expiresAt = now() + tokens.expires_in * 1000;
         p.spotifyScopes = scopes; p.connectedAt = now(); p.authVersion = random(); spotify.clear(p.id); store.save(); songRequests.sync(p);
-        return redirect(res, `/?connected=${p.id}${transaction.requestQueue ? '#song-requests' : ''}`);
+        return redirect(res, transaction.external ? '/auth/complete' : `/?connected=${p.id}${transaction.requestQueue ? '#song-requests' : ''}`);
       }
       const overlayMatch = path.match(/^\/api\/overlay\/([A-Za-z0-9_-]{43})$/);
       if (overlayMatch && req.method === 'GET') {
@@ -197,7 +229,9 @@ export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || j
   return { server, store, spotify, songRequests, updates, get origin() { return origin; },
     async start() {
       await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
-      origin = `http://127.0.0.1:${server.address().port}`; songRequests.start(); return origin;
+      origin = `http://127.0.0.1:${server.address().port}`; songRequests.start();
+      if (desktop().available) desktopOptions.onCloseAction?.(desktop().closeAction);
+      return origin;
     },
     async close() { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); },
   };
@@ -208,7 +242,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   if (!Number.isInteger(port) || port < 1024 || port > 65535) { console.error('ISLAND_PORT muss zwischen 1024 und 65535 liegen.'); process.exit(1); }
   try {
     const trayMode = process.argv.includes('--tray');
-    const app = createApp({ port, updateOptions: { canInstall: process.platform === 'win32' && trayMode, onReady: token => process.stdout.write(`ISLAND_UPDATE_READY:${token}\n`) } }); const url = await app.start();
+    const windowsTray = process.platform === 'win32' && trayMode;
+    const app = createApp({ port,
+      updateOptions: { canInstall: windowsTray, onReady: token => process.stdout.write(`ISLAND_UPDATE_READY:${token}\n`) },
+      desktopOptions: { enabled: windowsTray, onCloseAction: action => process.stdout.write(`ISLAND_CLOSE_ACTION:${action}\n`) },
+    }); const url = await app.start();
     console.log(`\nIsland Now ${APP_VERSION}\n${url}\n\n${trayMode ? 'Die Anwendung läuft im Windows-Tray.' : 'Dieses Fenster offen lassen, solange OBS das Widget verwendet.\nBeenden mit Strg+C.'}\n`);
     if (process.argv.includes('--open')) openBrowser(url);
     let stopping = false;

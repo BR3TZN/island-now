@@ -19,9 +19,9 @@ const clientId = 'a'.repeat(32);
 const rawTrack = { is_playing: true, progress_ms: 45000, item: { id: 'song-a', type: 'track', name: '<script>Never execute</script>', artists: [{ name: 'Artist A' }], duration_ms: 200000, album: { name: 'Album A', images: [{ width: 640, url: 'https://i.scdn.co/image/demo' }] }, external_urls: { spotify: 'https://open.spotify.com/track/song-a' } } };
 const response = (data, status = 200, headers = {}) => new Response(status === 204 ? null : JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...headers } });
 
-async function fixture(t, fetchFn, clock) {
+async function fixture(t, fetchFn, clock, desktopOptions) {
   const directory = mkdtempSync(join(tmpdir(), 'island-test-'));
-  const store = createStore(directory); const app = createApp({ store, port: 0, fetchFn, ...(clock ? { now: clock } : {}) });
+  const store = createStore(directory); const app = createApp({ store, port: 0, fetchFn, desktopOptions, ...(clock ? { now: clock } : {}) });
   const origin = await app.start();
   t.after(async () => { await app.close(); rmSync(directory, { recursive: true, force: true }); });
   const state = await (await fetch(`${origin}/api/state`)).json();
@@ -66,6 +66,64 @@ test('Untrusted write requests and Host rebinding are rejected', async t => {
   const hostStatus = await new Promise((resolve, reject) => { const r = http.get(`${f.origin}/api/state`, { headers: { Host: 'evil.example' } }, response => { response.resume(); resolve(response.statusCode); }); r.on('error', reject); });
   assert.equal(hostStatus, 403);
   res = await fetch(`${f.origin}/api/state`, { headers: { Origin: 'https://evil.example' } }); assert.equal(res.headers.get('access-control-allow-origin'), null);
+});
+
+test('Desktop close action defaults to exit, is validated and persists after reload', async t => {
+  const signals = [];
+  const f = await fixture(t, undefined, undefined, { enabled: true, onCloseAction: action => signals.push(action) });
+  assert.deepEqual(f.state.desktop, { available: true, closeAction: 'exit' });
+  const forbidden = await fetch(`${f.origin}/api/desktop`, { method: 'PATCH', headers: { Origin: 'https://example.com', 'X-Island-CSRF': f.state.csrf, 'Content-Type': 'application/json' }, body: '{"closeAction":"tray"}' });
+  assert.equal(forbidden.status, 403);
+  assert.equal((await f.call('/api/desktop', 'PATCH', { closeAction: 'minimize' })).status, 400);
+  assert.deepEqual(await (await f.call('/api/desktop', 'PATCH', { closeAction: 'tray' })).json(), { available: true, closeAction: 'tray' });
+  assert.deepEqual(signals, ['exit', 'tray']);
+  const reloaded = createApp({ port: 0, store: createStore(f.directory), desktopOptions: { enabled: true, onCloseAction: action => signals.push(action) } });
+  await reloaded.start();
+  try {
+    assert.deepEqual((await (await fetch(`${reloaded.origin}/api/state`)).json()).desktop, { available: true, closeAction: 'tray' });
+    assert.equal(signals.at(-1), 'tray');
+  } finally { await reloaded.close(); }
+  const browser = await fixture(t);
+  assert.deepEqual(browser.state.desktop, { available: false, closeAction: 'exit' });
+  assert.equal((await browser.call('/api/desktop', 'PATCH', { closeAction: 'tray' })).status, 409);
+});
+
+test('Desktop Spotify login opens a one-use browser ticket with browser-bound PKCE', async t => {
+  const opened = [];
+  let tokenForm, now = Date.now();
+  const scope = 'user-read-currently-playing user-modify-playback-state';
+  const f = await fixture(t, async (url, options) => {
+    assert.equal(url, 'https://accounts.spotify.com/api/token'); tokenForm = options.body;
+    return response({ access_token: 'ACCESS-SECRET', refresh_token: 'REFRESH-SECRET', expires_in: 3600, scope });
+  }, () => now, { enabled: true, openExternal: url => opened.push(url) });
+  const path = `/api/profiles/${f.profile.id}`;
+  await f.call(path, 'PATCH', { clientId });
+  const start = () => f.call(`${path}/connect`, 'POST', { externalBrowser: true, purpose: 'song-requests' });
+  const ticketPath = url => new URL(url).pathname;
+  const responseStart = await start();
+  assert.equal(responseStart.status, 202);
+  assert.equal(responseStart.headers.get('set-cookie'), null);
+  const { url, external } = await responseStart.json();
+  assert.equal(external, true); assert.deepEqual(opened, [url]);
+  assert.equal(new URL(url).origin, f.origin);
+  const launch = await f.call(ticketPath(url));
+  assert.equal(launch.status, 303);
+  const auth = new URL(launch.headers.get('location'));
+  assert.equal(auth.origin, 'https://accounts.spotify.com');
+  assert.equal(auth.searchParams.get('scope'), scope);
+  assert.equal(auth.searchParams.get('redirect_uri'), `${f.origin}/auth/callback`);
+  assert.equal((await f.call(ticketPath(url))).headers.get('location'), '/?error=oauth_state');
+  const callback = `/auth/callback?state=${auth.searchParams.get('state')}&code=code`;
+  assert.equal((await f.call(callback)).headers.get('location'), '/?error=oauth_state');
+  assert.equal(tokenForm, undefined);
+  const cookie = launch.headers.get('set-cookie').split(';')[0];
+  const finish = await fetch(`${f.origin}${callback}`, { headers: { Cookie: cookie }, redirect: 'manual' });
+  assert.equal(finish.headers.get('location'), '/auth/complete');
+  assert.equal(createHash('sha256').update(tokenForm.get('code_verifier')).digest('base64url'), auth.searchParams.get('code_challenge'));
+  assert.equal((await (await f.call('/api/state')).json()).profiles[0].connectedAt, now);
+  const expired = ticketPath((await (await start()).json()).url);
+  now += 120001;
+  assert.equal((await f.call(expired)).headers.get('location'), '/?error=oauth_state');
 });
 
 test('OBS output is read-only, never contains credentials, settings persist, rotated links stop working', async t => {
@@ -161,12 +219,13 @@ test('Widget visibility: song changes, pauses, resume, manual reveal, stale data
 test('Static assets resolve; no external JS and no broken DOM references in controls', async t => {
   const f = await fixture(t, async () => response(null, 204));
   const html = await (await f.call('/')).text();
-  assert.match(html, /Dein Sound/); assert.match(html, /viewport/); assert.match(html, /aria-live/);
-  const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
+  assert.match(html, /Dein Spotify-Widget/); assert.match(html, /viewport/); assert.match(html, /aria-live/);
+  const idList = [...html.matchAll(/(?<![\w-])id="([^"]+)"/g)].map(m => m[1]);
+  const ids = new Set(idList); assert.equal(ids.size, idList.length, 'Duplicate HTML IDs');
   const js = await (await f.call('/app.js')).text();
   const requestsJs = await (await f.call('/song-requests.js')).text();
   for (const m of (js + requestsJs).matchAll(/\$\('([^']+)'\)/g)) assert.ok(ids.has(m[1]), `Missing element ${m[1]}`);
-  for (const path of ['/app.js', '/song-requests.js', '/styles.css', '/widget.js', '/widget-state.mjs', '/retro-player.mjs', '/themes.mjs', '/cover-colors.mjs', '/widget.css', '/overlay.html', '/demo-cover.svg', '/favicon.svg', '/help.html']) assert.equal((await f.call(path)).status, 200, path);
+  for (const path of ['/app.js', '/song-requests.js', '/styles.css', '/widget.js', '/widget-state.mjs', '/retro-player.mjs', '/themes.mjs', '/cover-colors.mjs', '/widget.css', '/overlay.html', '/demo-cover.svg', '/favicon.svg', '/help.html', '/auth/complete']) assert.equal((await f.call(path)).status, 200, path);
   assert.equal(/<script[^>]+src="https?:/i.test(html), false);
   const overlay = await (await f.call('/overlay.html')).text();
   const overlayIds = new Set([...overlay.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
@@ -196,6 +255,19 @@ test('Cover colors favor dominant colored areas, keep contrast and provide fallb
   assert.ok((lum + .05) / .058 >= 4.45);
   assert.equal(dominantAccent({ data: [0, 0, 0, 0] }, '#40d9cf'), '#40d9cf');
   assert.match(readableAccent([15, 40, 70], .173, 3), /^#[0-9a-f]{6}$/);
+});
+
+test('Vivid cover accents increase saturation without tinting grayscale covers', () => {
+  const parse = color => [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16));
+  const pixels = { data: [119, 76, 151, 255] };
+  const basic = parse(dominantAccent(pixels)), strong = parse(dominantAccent(pixels, '#1ed760', { vivid: true }));
+  const saturation = rgb => (Math.max(...rgb) - Math.min(...rgb)) / Math.max(...rgb);
+  const lum = strong.map(v => { const c = v / 255; return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; }).reduce((n, v, i) => n + v * [.2126, .7152, .0722][i], 0);
+  assert.ok(saturation(strong) > saturation(basic) + .12);
+  assert.ok(strong[2] > strong[0] && strong[0] > strong[1]);
+  assert.ok((lum + .05) / .058 >= 4.45);
+  const gray = parse(dominantAccent({ data: [70, 70, 70, 255] }, '#1ed760', { vivid: true }));
+  assert.equal(new Set(gray).size, 1);
 });
 
 test('Same-origin cover endpoint only serves current known cover, deduplicates and expires old links', async t => {

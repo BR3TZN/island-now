@@ -1,28 +1,30 @@
 # Island Now
 
-Lokales Spotify-Widget für OBS. Anmeldung im Browser mit OAuth 2.0 und PKCE, automatische Token-Erneuerung, Albumcover, Titel, Interpret, Fortschritt und transparente Browserquelle. Keine Abhängigkeit von Songify oder Textdateien. Version 1.2 ergänzt integrierte GitHub-Updates und automatische Release-Pakete. Die Anwendung zeigt Metadaten an und gibt keinen Ton aus.
+Lokales Spotify-Widget für OBS. Anmeldung im Browser mit OAuth 2.0 und PKCE, automatische Token-Erneuerung, Albumcover, Titel, Interpret, Fortschritt und transparente Browserquelle. Keine Abhängigkeit von Songify oder Textdateien. Unter Windows läuft Island Now im eigenen Fenster mit Tray-Symbol und integrierten GitHub-Updates. Die Anwendung zeigt Metadaten an und gibt keinen Ton aus.
 
 ## In fünf Schritten starten
 
 1. ZIP **vollständig entpacken**, zum Beispiel nach `E:\STREAM\Bot\Island-Now`. Keine Dateien der früheren Songify-Lösung übernehmen.
 2. Unter Windows wird eine vorhandene Node.js-Version ab 22 automatisch erkannt. Fehlt eine passende Version, richtet der Start sie selbst ein; dafür ist einmalig Internet erforderlich. Auf Mac/Linux [Node.js](https://nodejs.org/en/download) ab Version 22 installieren. Keine npm-Installation und keine zusätzlichen Pakete erforderlich.
-3. **Island-Now.exe** aus dem Windows-Release doppelklicken. Bei einem Quellpaket zuerst **START-WINDOWS.cmd** ausführen; es erstellt die Tray-Anwendung einmalig mit dem Windows-.NET-Compiler. Danach läuft die Anwendung mit Symbol rechts unten im Infobereich. Die Oberfläche öffnet sich unter **http://127.0.0.1:17653**. Für weitere Starts direkt die erzeugte EXE verwenden.
-4. Die Spotify-App wie unten beschrieben konfigurieren, die **Client-ID** eintragen und auf **Mit Spotify verbinden** klicken. Die Anmeldung erfolgt auf der Spotify-Seite.
-5. Einen Titel in Spotify abspielen. **URL kopieren** drücken, in OBS eine **Browserquelle** hinzufügen und die URL einfügen. **Breite 800, Höhe 400**. „Lokale Datei“ bleibt aus. Ein bestehendes benutzerdefiniertes CSS, das einen Hintergrund setzt, entfernen; die Quelle ist bereits transparent.
+3. **Island-Now.exe** aus dem Windows-Release doppelklicken. Bei einem Quellpaket zuerst **START-WINDOWS.cmd** ausführen; es lädt das WebView2 SDK von Microsoft und erstellt die App mit dem Windows-.NET-Compiler. Die App öffnet ihr eigenes Fenster und erscheint rechts unten im Infobereich. Über das Tray-Menü ist die Oberfläche auch im Browser unter **http://127.0.0.1:17653** erreichbar. Für weitere Starts direkt die erzeugte EXE verwenden.
+4. Unter **Verbindungen** die Spotify-App wie unten beschrieben konfigurieren, die **Client-ID** eintragen und auf **Mit Spotify verbinden** klicken. Die Anmeldung erfolgt auf der Spotify-Seite.
+5. Einen Titel in Spotify abspielen. Unter **Widget → In OBS verwenden** auf **URL kopieren** drücken, in OBS eine **Browserquelle** hinzufügen und die URL einfügen. **Breite 800, Höhe 400**. „Lokale Datei“ bleibt aus. Ein bestehendes benutzerdefiniertes CSS, das einen Hintergrund setzt, entfernen; die Quelle ist bereits transparent.
 
 ## Windows-Tray und Aktualisierung
 
 Ab Version 1.2.2 prüft der Windows-Start zuerst die Laufzeit. Ohne passende Systeminstallation lädt ein kleines Fortschrittsfenster die offizielle Node.js-LTS-Version für x64 oder ARM64 von `nodejs.org`. ZIP und EXE werden mit fest hinterlegten SHA-256-Werten geprüft. Nur `node.exe` und die Lizenz werden unter `runtime/` im entpackten Island-Now-Ordner abgelegt. Es sind keine Administratorrechte nötig; Windows-PATH wird nicht verändert. Der Ordner muss beschreibbar sein. Nach der einmaligen Einrichtung startet die App wie gewohnt im Tray. Bei Abbruch oder Downloadfehler einfach erneut starten; eine vorhandene Laufzeit wird erst nach erfolgreicher Prüfung ersetzt.
 
-Im Windows-Release liegt `Island-Now.exe` bereits fertig bei. Beim Quellpaket wird sie durch den ersten Start erzeugt. Diese native Windows-Anwendung startet Node ohne Konsolenfenster. Ein Doppelklick auf das Tray-Symbol öffnet die Oberfläche. Das Kontextmenü enthält **Oberfläche öffnen**, **Neu starten**, **Protokoll öffnen** und **Beenden**. Nur „Beenden“ stoppt die Anwendung; das Schließen eines Browserfensters beendet das Widget nicht. Ein zweiter Start öffnet die Oberfläche statt eine zweite Tray-Instanz zu starten. Die lokale Node-Instanz erhält beim Beenden einen gezielten Shutdown-Befehl; auch der Verlust der Verbindung zum Tray-Prozess beendet den zugehörigen Server.
+Im Windows-Release liegen `Island-Now.exe` und die benötigten WebView2-Bibliotheken bei. Beim Start öffnet sich ein eigenes Fenster. **Minimieren** blendet es in den Infobereich aus. **X** beendet die Anwendung samt Widget und Song Requests. Unter **Einstellungen → Windows-Fenster → Beim Klick auf „X“** kannst du stattdessen **Im Infobereich weiterlaufen** wählen. Ein Doppelklick auf das Tray-Symbol oder ein erneuter Start öffnet das bestehende Fenster. **Beenden** im Tray-Menü beendet die Anwendung immer.
 
-Für den manuellen Umstieg von Version 1.0 oder 1.1: die bisherige Instanz beenden. Neue Dateien in denselben Ordner entpacken bzw. kopieren und ersetzen. **Den bestehenden `.data`-Ordner behalten.** Darin liegen deine Anmeldung, Profile, Einstellungen und OBS-Links. Anschließend `START-WINDOWS.cmd` starten und die Browseroberfläche neu laden. In OBS einmalig die Browserquellen-Höhe auf **400 px** setzen. Eine selbst erzeugte `Island-Now.exe` aus der alten Quellversion muss durch die neue Release-EXE ersetzt oder vor dem erneuten Quellpaket-Start entfernt werden.
+Das Fenster verwendet die [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/), die zu Windows 11 gehört. Falls sie fehlt, bietet das Fenster einen Download-Link und den Start im Browser an. **Im Browser öffnen** im Tray-Menü bleibt verfügbar. Spotify und Twitch werden weiterhin im Standardbrowser autorisiert.
+
+Für den manuellen Umstieg von Version 1.0 oder 1.1: die bisherige Instanz beenden. Neue Dateien in denselben Ordner entpacken bzw. kopieren und ersetzen. **Den bestehenden `.data`-Ordner behalten.** Darin liegen deine Anmeldung, Profile, Einstellungen und OBS-Links. Anschließend `START-WINDOWS.cmd` starten und das Fenster neu öffnen. In OBS einmalig die Browserquellen-Höhe auf **400 px** setzen. Eine selbst erzeugte `Island-Now.exe` aus der alten Quellversion muss durch die neue Release-EXE ersetzt oder vor dem erneuten Quellpaket-Start entfernt werden.
 
 Das Protokoll liegt unter `.data/tray.log`. Die Konsolenvariante `START-KONSOLE.cmd` bleibt zur Diagnose verfügbar und benötigt Node im Windows-PATH. Der Mac-/Linux-Start verwendet weiterhin ein Terminal. Die private Windows-Laufzeit in `runtime/` bleibt bei App-Updates erhalten und gehört nicht ins weitergegebene ZIP.
 
 ## Integrierte Updates ab Version 1.2
 
-Unter **Updates** prüft die Oberfläche auf Wunsch beim Öffnen das neueste stabile Release im konfigurierten GitHub-Projekt `BR3TZN/island-now`. Nach einer Bestätigung werden das Paket und seine Prüfsummen geprüft. Unter Windows wird die Anwendung über den Tray neu gestartet; Anmeldung und Einstellungen bleiben in `.data`. OBS lädt das Widget nach einem Versionswechsel neu. Während des Neustarts kann es kurz ausgeblendet sein.
+Unter **Einstellungen → Updates** prüft die Oberfläche auf Wunsch beim Öffnen das neueste stabile Release im konfigurierten GitHub-Projekt `BR3TZN/island-now`. Nach einer Bestätigung werden das Paket und seine Prüfsummen geprüft. Unter Windows startet die Anwendung nach einem Update im Tray neu. Per Doppelklick auf das Tray-Symbol öffnest du das Fenster wieder. Anmeldung und Einstellungen bleiben in `.data`. OBS lädt das Widget nach einem Versionswechsel neu. Während des Neustarts kann es kurz ausgeblendet sein.
 
 Der GitHub-Release-Workflow und ein Windows-Publizierungsskript sind vorbereitet. Erst nach der Veröffentlichung ist das Projekt online erreichbar. Die vorherige Entwicklungs-ZIP 1.1 benötigt einmalig ein manuelles Update auf 1.2. [Veröffentlichung und spätere Releases](docs/RELEASES.md).
 
@@ -50,18 +52,18 @@ Die **Client-ID** aus dem Dashboard eintragen. Sie hat 32 Hex-Zeichen. **Client-
 - **Dauerhaft:** solange Wiedergabedaten vorliegen. „Bei Pause ausblenden“ lässt sich separat schalten.
 - **Akzentfarbe, Breite, Cover, Fortschritt und Zeit:** direkt einstellbar. Einstellungen werden automatisch gespeichert und von OBS übernommen.
 - **Demo / Live:** Demo funktioniert ohne Spotify. Die Gestaltungsvorschau bleibt sichtbar. „Einblendung testen“ demonstriert die gewählte Anzeigedauer; bei Live wird auch das echte OBS-Widget erneut eingeblendet.
-- **Akzentfarbe aus Cover:** einschaltbare lokale Farbauswertung des aktuellen Covers. Die Akzentfarbe und bei Island auch die dezente Hintergrundtönung passen sich dem Album an. Dunkle Farben werden für die Lesbarkeit aufgehellt. Ohne auswertbares Cover gilt die manuelle Farbe als Fallback. Das Cover selbst bleibt unverändert. Die Funktion arbeitet auch bei ausgeblendeter Cover-Anzeige.
+- **Akzentfarbe aus Cover:** einschaltbare lokale Farbauswertung des aktuellen Covers. Der Akzent übernimmt den Farbton des Albums mit mehr Sättigung. Bei Island, Studio und Compact passt sich auch die Tönung der Karte an. Dunkle Farben werden für die Lesbarkeit aufgehellt. Ohne auswertbares Cover gilt die manuelle Farbe als Fallback. Das Cover selbst bleibt unverändert. Die Funktion arbeitet auch bei ausgeblendeter Cover-Anzeige.
 - **Bewegung des gesamten Widgets:** Dropdown mit Fade, von links/rechts/oben/unten, sanfter Skalierung oder direktem Ein-/Ausblenden.
 - **Titel- und Coverwechsel:** eigenes Dropdown für Überblenden, seitliches Überblenden oder direktes Umschalten. Die Übergangsdauer ist zwischen 0,15 und 1,5 Sekunden einstellbar; Standard 0,65 Sekunden. Albumcover werden vor dem Wechsel geladen und mit zwei Ebenen überblendet. Schnelle Titelwechsel verwerfen überholte Übergänge.
-- **Client-ID:** standardmäßig als Passwortfeld verdeckt, auch während der Eingabe. „Anzeigen“ blendet sie gezielt ein. Nach 15 Sekunden, bei Fensterwechsel, verstecktem Browser-Tab oder Profilwechsel wird sie automatisch wieder verborgen.
+- **Client-ID:** standardmäßig als Passwortfeld verdeckt, auch während der Eingabe. „Anzeigen“ blendet sie gezielt ein. Nach 15 Sekunden, beim Verlassen der Verbindungsansicht, bei Fensterwechsel, verstecktem Browser-Tab oder Profilwechsel wird sie automatisch wieder verborgen.
 - **Lange Titel:** automatische Laufschrift, die durch die regelmäßigen Spotify-Abfragen nicht neu gestartet wird. Podcasts zeigen Episodentitel und Podcastname.
 - **Kein aktiver Titel / Werbung / Fehler:** das OBS-Widget bleibt transparent. Fehlermeldungen erscheinen ausschließlich in der Bedienoberfläche.
 
-Spotify kann auf deinem Gaming-PC, Handy oder einem anderen Gerät laufen. Das Widget fragt den aktuellen Titel des angemeldeten **Kontos** ab. Island Now muss auf dem **OBS-PC** laufen, damit die lokale Browserquelle erreichbar ist. Unter Windows darfst du die Browser-Oberfläche schließen; die Anwendung läuft im Tray weiter.
+Spotify kann auf deinem Gaming-PC, Handy oder einem anderen Gerät laufen. Das Widget fragt den aktuellen Titel des angemeldeten **Kontos** ab. Island Now muss auf dem **OBS-PC** laufen, damit die lokale Browserquelle erreichbar ist. Minimiere das Windows-Fenster, damit die Anwendung im Tray weiterläuft.
 
 ## Song Requests über Twitch
 
-Der Bereich **Song Requests** ist pro Spotify-Profil standardmäßig ausgeschaltet. Island Now arbeitet auch mit geschlossenem Browser weiter, solange es im Tray läuft. Bei ausgeschalteter Funktion bleibt der Twitch-Reward unverändert und kann weiter über Streamer.bot verarbeitet werden. Denselben Reward nur in einer Anwendung als Trigger aktivieren.
+Der Bereich **Song Requests** ist pro Spotify-Profil standardmäßig ausgeschaltet. Der Schalter und der Status bleiben in allen Tabs sichtbar. Unter **Einrichtung** verbindest du die Konten und legst den Reward fest. **Chat** enthält die Vorlage und ihre Vorschau, **Verlauf** die letzten Songwünsche. Bei ausgeschalteter Funktion bleibt der Twitch-Reward unverändert und kann weiter über Streamer.bot verarbeitet werden. Denselben Reward nur in einer Anwendung als Trigger aktivieren.
 
 1. In der [Twitch Developer Console](https://dev.twitch.tv/console/apps) eine Anwendung vom Typ **Public** erstellen. Falls eine Redirect-URL erforderlich ist, `http://localhost:17653` eintragen; die Anmeldung selbst verwendet einen Gerätecode. Die Twitch-Client-ID in Island Now eintragen und den Code mit dem Kanal bestätigen, dessen Rewards verwendet werden sollen. Kanalpunkte müssen für den Kanal verfügbar sein. Ein Client-Secret wird nicht benötigt.
 2. **Warteschlange freigeben** und die zusätzliche Spotify-Berechtigung bestätigen. Spotify Premium ist für das Einreihen erforderlich. Auf dem verbundenen Spotify-Konto die Wiedergabe auf dem gewünschten Gerät starten.
@@ -69,7 +71,7 @@ Der Bereich **Song Requests** ist pro Spotify-Profil standardmäßig ausgeschalt
 
 Zuschauer geben beim Einlösen einen Suchtext wie `Avicii Levels` oder `Levels Avicii` ein. Auch `Songtitel - Interpret` und direkte Spotify-Track-Links (`https://open.spotify.com/track/…`, auch `spotify:track:…`) funktionieren. Die Suche bevorzugt einen exakten Titel und Interpreten. Die Wiedergabe läuft weiter; der Wunsch wird in Spotifys Warteschlange eingereiht.
 
-Die Chatbestätigung wird erst nach erfolgreichem Einreihen vom verbundenen Twitch-Konto gesendet. Der Text unterstützt `{titel}`, `{interpret}` und `{user}`. In einem aktiven Twitch Shared Chat erscheint die Nachricht auch in den verbundenen Chats.
+Unter **Chat** lässt sich die Bestätigung unabhängig vom Reward speichern. Sie wird erst nach erfolgreichem Einreihen vom verbundenen Twitch-Konto gesendet. Der Text unterstützt `{titel}`, `{interpret}` und `{user}`. In einem aktiven Twitch Shared Chat erscheint die Nachricht auch in den verbundenen Chats.
 
 Nur bei Rewards, die die verbundene Twitch-App verwalten darf, kann Island Now Einlösungen automatisch bestätigen und bei eindeutiger Ablehnung Punkte zurückgeben. Bei anderen Rewards wird der Einlösungsstatus nicht verändert. Wenn Spotify das Einreihen nicht bestätigt, zeigt der lokale Verlauf **Bitte prüfen**; Island Now reiht die Einlösung nicht automatisch erneut ein. Während Island Now beendet oder von Twitch getrennt ist, werden keine Einlösungen nachträglich eingereiht.
 
@@ -117,12 +119,12 @@ server.mjs         Lokaler HTTP-Server und OAuth-Callback
 lib/               Spotify-Anbindung, Datenmodell und verschlüsselte Speicherung
 public/            Bedienoberfläche und transparentes OBS-Widget
 test/              Automatisierte Prüfungen mit simulierten Spotify- und Twitch-Antworten
-windows/Tray.cs    Quellcode für die native Windows-Tray-Anwendung
+windows/           Windows-Fenster, Tray-Anwendung, Node-Start und Update-Installer
 ```
 
 Start im Terminal: `node server.mjs --open`. Tests: `npm test` oder `node --test`. Ein anderer Port kann über `ISLAND_PORT` gesetzt werden; dann die neue Redirect-URI im Dashboard registrieren und die neue URL in OBS verwenden. `ISLAND_DATA_DIR` erlaubt einen anderen lokalen Datenordner.
 
-Der Tray-Starter verwendet Windows Forms / .NET Framework. Das Release-Workflow-Skript erstellt eine fertige EXE; bei Quellpaketen wird sie beim ersten Windows-Start lokal erstellt. In dieser Linux-Umgebung konnte die Windows-EXE nicht kompiliert oder ausgeführt werden.
+Die Windows-App verwendet Windows Forms, .NET Framework und WebView2. `scripts/build-windows.ps1` lädt das WebView2 SDK mit Prüfsummenprüfung und baut die EXE. Die GitHub-Prüfungen starten die Anwendung, testen das Fenster und prüfen den Start mit privater Node-Laufzeit.
 
 Die automatisierten Tests simulieren Spotify und Twitch. Eine echte Anmeldung kann erst nach Eintragen gültiger Client-IDs und persönlicher Freigabe der Konten geprüft werden.
 
@@ -142,6 +144,7 @@ Die automatisierten Tests simulieren Spotify und Twitch. Eine echte Anmeldung ka
 - [Spotify: Rate limits](https://developer.spotify.com/documentation/web-api/concepts/rate-limits)
 - [Spotify: Design & Branding](https://developer.spotify.com/documentation/design)
 - [Microsoft: .NET Framework unter Windows](https://learn.microsoft.com/de-de/dotnet/framework/install/on-windows-and-server)
+- [Microsoft: WebView2 Runtime](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution)
 - [Microsoft: NotifyIcon](https://learn.microsoft.com/de-de/dotnet/api/system.windows.forms.notifyicon)
 - [Microsoft: C#-Compileroptionen](https://learn.microsoft.com/dotnet/csharp/language-reference/compiler-options/)
 
@@ -149,4 +152,4 @@ Unabhängiges Projekt; keine offizielle Spotify-Anwendung. Keine Audiowiedergabe
 
 ## Farben der Bedienoberfläche
 
-Oben unter **Oberfläche** zwischen **Neutral dunkel** und **Cover-Farben** wählen. Cover-Farben folgen dem aktuellen Titel des aktiven Spotify-Profils und wechseln weich. Ohne Cover bleibt die Oberfläche neutral. Vor der Anmeldung lässt sich der Effekt anhand des Demo-Covers ansehen. Die Auswahl wird in diesem Browser gespeichert und ist unabhängig von der Akzentfarbe des OBS-Widgets.
+Unter **Einstellungen → Oberfläche** zwischen **Neutral dunkel** und **Cover-Farben** wählen. Cover-Farben folgen dem aktuellen Titel des aktiven Spotify-Profils und wechseln weich. Ohne Cover bleibt die Oberfläche neutral. Vor der Anmeldung lässt sich der Effekt anhand des Demo-Covers ansehen. Die Auswahl wird im Fenster bzw. Browser gespeichert und ist unabhängig von der Akzentfarbe des OBS-Widgets.

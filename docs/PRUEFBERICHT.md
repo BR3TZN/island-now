@@ -1,12 +1,12 @@
-# Prüfung von Island Now 1.3.0
+# Prüfung von Island Now 1.4.0
 
 Stand: 09.11.2026. Laufzeit der automatisierten Prüfungen: Node.js 24 unter Linux.
 
-**Ergebnis: 31 Tests bestanden, 0 fehlgeschlagen.**
+**Ergebnis: 35 Tests bestanden, 0 fehlgeschlagen.**
 
-Version 1.3.0 ergänzt optionale Twitch Song Requests. Die neuen Integrationstests verwenden simulierte Spotify- und Twitch-Antworten sowie simulierte EventSub-Nachrichten. Die sechs vorhandenen Widget-Designs sind weiter Teil der Tests.
+Version 1.4.0 ergänzt das Windows-Fenster, getrennte Bedienansichten und kräftigere Cover-Akzente. Die Integrationstests verwenden simulierte Spotify- und Twitch-Antworten sowie simulierte EventSub-Nachrichten.
 
-Die Windows-Freigabe enthält weiterhin Kompilierung, offiziellen Node-Download, privaten Tray-Start sowie Update und Rollback mit Erhalt von `.data` und `runtime/`.
+Der Windows-Test prüft das Öffnen aus dem Tray, das Minimieren, das Wiederöffnen, beide Schließen-Optionen und das Laden der lokalen Oberfläche in WebView2. Der Release-Workflow prüft zusätzlich Update und Rollback mit Erhalt von `.data` und `runtime/`.
 
 Geprüft mit simulierten Spotify-Antworten:
 
@@ -45,6 +45,11 @@ Zusätzlich bestanden: JavaScript-Syntaxprüfung, Syntaxprüfung des Bash-Starts
 29. Wechsel des EventSub-Servers ohne doppelte Anmeldung sowie Stopp bei widerrufener Twitch-Freigabe.
 30. Ausschalten während der Titelsuche unterbindet das Einreihen und die Chatbestätigung.
 31. Freitext findet Titel und Interpret in beiden Reihenfolgen, bevorzugt den genauen Titel und reiht keine unpassenden Ergebnisse ein.
+
+32. Windows-Schließen-Option mit Standardwert, Eingabeprüfung und Speicherung über Neustarts.
+33. Spotify-Anmeldung aus dem Windows-Fenster im Standardbrowser: Einmal-Link mit Ablauf, Browser-Bindung und unveränderte PKCE-Prüfung.
+34. Kräftigere Cover-Farben, Kontrast und Erhalt neutraler Grautöne.
+35. Chatvorlage lässt sich bei fehlender Spotify-Freigabe speichern; Reward und Schalter bleiben erhalten.
 
 ## Grenzen der Prüfung
 

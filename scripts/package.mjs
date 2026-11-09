@@ -7,6 +7,9 @@ const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const windows = process.argv.includes('--windows');
 if (!/^\d+\.\d+\.\d+$/.test(pkg.version)) throw new Error('Version muss x.y.z sein.');
 if (windows && !existsSync(join(root, 'Island-Now.exe'))) throw new Error('Windows-EXE zuerst erstellen.');
+if (windows) for (const file of ['Microsoft.Web.WebView2.Core.dll', 'Microsoft.Web.WebView2.WinForms.dll', 'x86/WebView2Loader.dll', 'x64/WebView2Loader.dll', 'arm64/WebView2Loader.dll', 'LICENSE.txt', 'NOTICE.txt']) {
+  if (!existsSync(join(root, 'windows', 'webview2', file))) throw new Error(`WebView2-Datei fehlt: ${file}. Zuerst scripts/build-windows.ps1 ausführen.`);
+}
 const entries = new Map();
 for (const name of ['server.mjs', 'package.json', 'README.md', 'CHANGELOG.md', 'LICENSE', 'START-WINDOWS.cmd', 'START-KONSOLE.cmd', 'START-MAC-LINUX.sh', ...(windows ? ['Island-Now.exe'] : [])]) {
   if (existsSync(join(root, name))) entries.set(name, readFileSync(join(root, name)));
@@ -15,6 +18,7 @@ function walk(folder) {
   for (const item of readdirSync(join(root, folder), { withFileTypes: true })) {
     if (item.name.startsWith('.')) continue;
     const relative = `${folder}/${item.name}`;
+    if (!windows && relative === 'windows/webview2') continue;
     if (item.isDirectory()) walk(relative); else if (item.isFile()) entries.set(relative, readFileSync(join(root, relative)));
   }
 }
