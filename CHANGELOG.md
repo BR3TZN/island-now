@@ -1,5 +1,10 @@
 # Änderungen
 
+## 1.4.2
+
+- Song Requests suchen auch nach dem Titel allein, beispielsweise `Levels`. Titel und Interpret werden nach Übereinstimmung ausgewertet. Gleich passende Titel werden nach Spotify-Beliebtheit ausgewählt, sofern der Wert verfügbar ist. Sonst gilt die Reihenfolge der Spotify-Treffer.
+- Erfolgreiche Spotify-Antworten mit HTTP 200 werden wie HTTP 204 als eingereiht bestätigt. Bei einem tatsächlichen Verbindungsfehler wird der Wunsch weiterhin nicht automatisch ein zweites Mal eingereiht.
+
 ## 1.4.1
 
 - Beim Öffnen aus dem Tray erscheint das Windows-Fenster wieder an seiner vorherigen Position und in seiner bisherigen Größe. Ein maximiertes Fenster bleibt maximiert. Falls der ursprüngliche Bildschirm nicht mehr verfügbar ist, erscheint das Fenster auf einem angeschlossenen Bildschirm.
