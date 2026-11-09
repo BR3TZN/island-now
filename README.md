@@ -44,7 +44,8 @@ Die **Client-ID** aus dem Dashboard eintragen. Sie hat 32 Hex-Zeichen. **Client-
 
 ## Anzeige
 
-- **Island, Studio, Compact, Cyberpunk, Forza, Winamp Classic:** sechs über die Oberfläche auswählbare Layouts. Cyberpunk verwendet kantige HUD-Flächen mit Gelb, Cyan und Magenta. Forza basiert auf deinem früheren `forza.css`: Cover oben, graue Textbalken, gelber Titel und weißer Interpret. Die empfohlene OBS-Höhe von 400 px verhindert Abschneiden des vertikalen Forza-Layouts.
+- **Island, Studio, Compact, Cyberpunk, Forza, Winamp Classic und WoW-Questlog:** sieben über die Oberfläche auswählbare Layouts. Cyberpunk verwendet kantige HUD-Flächen mit Gelb, Cyan und Magenta. Forza basiert auf deinem früheren `forza.css`: Cover oben, graue Textbalken, gelber Titel und weißer Interpret. Die empfohlene OBS-Höhe von 400 px verhindert Abschneiden des vertikalen Forza-Layouts.
+- **WoW-Questlog:** Pergament, dunkler Bronzerahmen, rotes Questzeichen und ein gerahmtes Albumcover. Der Songfortschritt erscheint als EP-Leiste. Mit Cover-Akzent übernehmen Leiste und Coverrahmen die Albumfarbe; der Text bleibt auf hellem Pergament.
 - **Winamp Classic:** ersetzt den LINAMP-Look durch das klassische Player-Fenster im Seitenverhältnis 275 × 116. Pixel-Schrift, Segment-Uhr, goldene Titelzeilen und silberne Tasten orientieren sich an der Vorlage. Der Player zeigt Titel, Interpret und Zeit ohne Albumcover; Cover-Farben und Übergänge bleiben verfügbar. Pegelbalken und Tasten sind dekorativ. Nicht verfügbare Audioangaben bleiben „--“. Vorhandene LINAMP-Einstellungen und OBS-Links bleiben gültig.
 
   ![Winamp Classic](docs/winamp-classic.svg)

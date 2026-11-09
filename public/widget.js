@@ -109,7 +109,9 @@ function receive(data) {
   card.classList.toggle('no-cover', settings.showCover === false);
   card.classList.toggle('no-time', settings.showTime === false);
   card.classList.toggle('no-progress', settings.showProgress === false);
-  $('play-label').textContent = data.status === 'paused' ? 'PAUSIERT' : 'LÄUFT GERADE';
+  $('play-label').textContent = card.dataset.theme === 'warcraft'
+    ? data.status === 'paused' ? 'QUEST PAUSIERT' : 'MUSIKQUEST'
+    : data.status === 'paused' ? 'PAUSIERT' : 'LÄUFT GERADE';
   if (data.track) {
     const t = data.track;
     const signature = JSON.stringify([t.id, t.title, t.artist, t.cover]);
