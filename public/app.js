@@ -8,7 +8,16 @@ let clientIdTimer;
 let updateState, updateTimer, updateWasStarted = false;
 let appearance = 'neutral', appearanceCover, appearanceRevision = 0;
 let requestsPanel;
-const pageAccents = new Map(), neutralAccent = '#d2d6dd';
+const pageAccents = new Map(), neutralAccent = '#c5b6ff';
+const nativeWindow = new URLSearchParams(location.search).get('desktop') === '1';
+const spotifyLogins = new Map();
+const workspaceRoutes = {
+  '#studio': ['widget', 'Widget'], '#connection': ['connection', 'Verbindungen'],
+  '#song-requests': ['requests', 'Song Requests', 'setup'],
+  '#song-requests-chat': ['requests', 'Song Requests', 'chat'],
+  '#song-requests-verlauf': ['requests', 'Song Requests', 'history'],
+  '#settings': ['settings', 'Einstellungen'], '#updates': ['settings', 'Einstellungen'],
+};
 const demos = [
   { id: 'demo-1', title: 'Night Drive', artist: 'Island Demo', duration: 228000 },
   { id: 'demo-2', title: 'A Little Longer Than Expected (Midnight Session)', artist: 'Island Demo, Studio Collective', duration: 262000 },
@@ -24,6 +33,46 @@ async function api(path, method = 'GET', data) {
   return result;
 }
 function remember() { try { localStorage.setItem('island-profile', activeId); } catch {} }
+function renderWorkspaceRoute(scroll = false) {
+  const [view, title, tab = 'setup'] = workspaceRoutes[location.hash] || workspaceRoutes['#studio'];
+  $('workspace-title').textContent = title;
+  for (const panel of document.querySelectorAll('[data-workspace-view]')) panel.hidden = panel.dataset.workspaceView !== view;
+  for (const link of document.querySelectorAll('[data-workspace]')) {
+    const selected = link.dataset.workspace === view;
+    link.classList.toggle('active', selected);
+    if (selected) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+  }
+  for (const panel of document.querySelectorAll('[data-request-panel]')) panel.hidden = panel.dataset.requestPanel !== tab;
+  for (const link of document.querySelectorAll('[data-request-tab]')) {
+    const selected = link.dataset.requestTab === tab;
+    link.setAttribute('aria-selected', selected);
+    link.tabIndex = selected ? 0 : -1;
+  }
+  if (view !== 'connection') concealClientId();
+  if (view === 'widget') fitPreview();
+  if (scroll) window.scrollTo({ top: 0, behavior: 'instant' });
+}
+function navigate(hash) {
+  if (location.hash !== hash) { history.pushState({}, '', hash); renderWorkspaceRoute(true); }
+}
+function bindWorkspaceRoutes() {
+  const tabs = [...document.querySelectorAll('[data-request-tab]')];
+  for (const link of document.querySelectorAll('[data-workspace], [data-request-tab], .brand')) {
+    link.addEventListener('click', e => {
+      if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      e.preventDefault(); navigate(link.hash);
+    });
+  }
+  for (const [i, tab] of tabs.entries()) tab.addEventListener('keydown', e => {
+    const step = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+    const index = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : step ? (i + step + tabs.length) % tabs.length : -1;
+    if (index < 0 && e.key !== ' ') return;
+    e.preventDefault(); const next = tabs[index < 0 ? i : index];
+    navigate(next.hash); next.focus();
+  });
+  window.addEventListener('hashchange', () => renderWorkspaceRoute(true));
+  renderWorkspaceRoute();
+}
 async function syncAppearance() {
   // Follow the active Spotify account even when the widget preview shows a demo.
   const cover = appearance === 'cover' ? (active()?.connected ? lastLive?.track?.cover : previewMode === 'demo' ? '/demo-cover.svg' : '') || '' : '';
@@ -40,7 +89,7 @@ async function syncAppearance() {
       const canvas = document.createElement('canvas'); canvas.width = canvas.height = 32;
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       ctx.drawImage(img, 0, 0, 32, 32);
-      color = dominantAccent(ctx.getImageData(0, 0, 32, 32), neutralAccent);
+      color = dominantAccent(ctx.getImageData(0, 0, 32, 32), neutralAccent, { vivid: true });
       pageAccents.set(url.href, color);
       if (pageAccents.size > 32) pageAccents.delete(pageAccents.keys().next().value);
     }
@@ -119,7 +168,7 @@ function concealClientId() {
   $('toggle-client-id').textContent = 'Anzeigen'; $('toggle-client-id').setAttribute('aria-pressed', 'false');
 }
 function fitPreview() {
-  if (!settings) return;
+  if (!settings || $('preview-stage').clientWidth <= 24) return;
   const w = settings.width + 56, height = settings.theme === 'forza' ? 380 : settings.theme === 'linamp' ? Math.ceil(settings.width * 116 / 275) + 60 : settings.theme === 'compact' ? 175 : 210;
   $('preview-stage').dataset.theme = settings.theme;
   $('preview').width = w; $('preview').height = height;
@@ -174,8 +223,11 @@ async function copy(id, buttonId) {
 function renderUpdates(data) {
   updateState = data; $('update-current-version').textContent = data.currentVersion || app.version;
   $('update-status').textContent = data.message || '';
+  $('update-status').dataset.state = data.status;
   const busy = ['checking', 'downloading', 'verifying', 'staged'].includes(data.status);
   $('check-updates').disabled = busy;
+  $('check-updates').classList.toggle('primary', data.status !== 'available');
+  $('check-updates').classList.toggle('secondary', data.status === 'available');
   $('install-update').hidden = data.status !== 'available'; $('install-update').disabled = !data.canInstall;
   $('update-install-hint').hidden = data.status !== 'available' || data.canInstall;
   $('update-release-link').hidden = !data.releaseUrl; if (data.releaseUrl) $('update-release-link').href = data.releaseUrl;
@@ -200,12 +252,55 @@ async function pollUpdate() {
   } catch { $('update-dialog-status').textContent = 'Die Anwendung wird neu gestartet …'; }
   updateTimer = setTimeout(pollUpdate, 1500);
 }
+async function startSpotifyConnection(id, purpose) {
+  const p = app.profiles.find(p => p.id === id);
+  const result = await api(`/api/profiles/${id}/connect`, 'POST', { purpose, externalBrowser: nativeWindow });
+  if (!result.external) { location.assign(result.url); return; }
+  spotifyLogins.set(id, { connectedAt: p.connectedAt, expires: Date.now() + 600000 });
+  message('Spotify-Anmeldung im Browser geöffnet. Kehre nach der Freigabe in dieses Fenster zurück.');
+}
+let loginCheckPending = false;
+async function checkSpotifyLogins() {
+  if (!spotifyLogins.size || loginCheckPending) return;
+  loginCheckPending = true;
+  try {
+    const { profiles } = await api('/api/state');
+    for (const [id, attempt] of spotifyLogins) {
+      const fresh = profiles.find(p => p.id === id), p = app.profiles.find(p => p.id === id);
+      if (fresh?.connected && fresh.connectedAt !== attempt.connectedAt) {
+        p.connected = true; p.connectedAt = fresh.connectedAt;
+        spotifyLogins.delete(id);
+        if (id === activeId) {
+          lastLive = null; renderConnection(); message('Spotify ist verbunden.'); pollPlayback();
+        }
+      } else if (Date.now() >= attempt.expires) {
+        spotifyLogins.delete(id);
+        if (id === activeId) message('Die Spotify-Anmeldung wurde nicht abgeschlossen. Du kannst sie erneut starten.', true);
+      }
+    }
+  } catch { /* Retry while a login is pending. */ }
+  finally { loginCheckPending = false; }
+}
+function renderDesktop() {
+  $('desktop-settings').hidden = !app.desktop?.available;
+  $('desktop-unavailable').hidden = !!app.desktop?.available;
+  $('desktop-close-action').value = app.desktop?.closeAction || 'exit';
+}
 function bind() {
   requestsPanel = bindSongRequests({ api, connectSpotify: async id => {
     await flushSave();
-    const result = await api(`/api/profiles/${id}/connect`, 'POST', { purpose: 'song-requests' });
-    location.assign(result.url);
+    await startSpotifyConnection(id, 'song-requests');
   } });
+  bindWorkspaceRoutes();
+  renderDesktop();
+  $('desktop-close-action').onchange = async e => {
+    const select = e.target; select.disabled = true;
+    try {
+      app.desktop = await api('/api/desktop', 'PATCH', { closeAction: select.value });
+      toast(app.desktop.closeAction === 'tray' ? '„X“ blendet das Fenster ins Tray aus.' : '„X“ beendet Island Now.');
+    } catch (error) { message(error.message, true); }
+    finally { renderDesktop(); select.disabled = false; }
+  };
   try { appearance = localStorage.getItem('island-appearance') === 'cover' ? 'cover' : 'neutral'; } catch {}
   $('appearance').value = appearance;
   document.documentElement.dataset.appearance = appearance;
@@ -257,20 +352,20 @@ function bind() {
   $('add-profile').onclick = () => { $('new-profile-label').value = ''; $('profile-dialog').showModal(); };
   $('cancel-profile').onclick = () => $('profile-dialog').close();
   $('add-profile-form').onsubmit = async e => {
-    e.preventDefault(); try { await flushSave(); const p = await api('/api/profiles', 'POST', { label: $('new-profile-label').value }); app.profiles.push(p); selectProfile(p.id); $('profile-dialog').close(); $('connection').scrollIntoView(); $('client-id').focus(); } catch (err) { message(err.message, true); $('profile-dialog').close(); }
+    e.preventDefault(); try { await flushSave(); const p = await api('/api/profiles', 'POST', { label: $('new-profile-label').value }); app.profiles.push(p); selectProfile(p.id); $('profile-dialog').close(); navigate('#connection'); $('client-id').focus(); } catch (err) { message(err.message, true); $('profile-dialog').close(); }
   };
   $('connection-form').onsubmit = async e => {
     e.preventDefault(); concealClientId(); $('connect').disabled = true;
     try {
       await flushSave(); const p = await api(`/api/profiles/${activeId}`, 'PATCH', { label: $('profile-label').value, clientId: $('client-id').value.trim() });
-      Object.assign(active(), p); refreshProfileList();
-      const result = await api(`/api/profiles/${activeId}/connect`, 'POST', {}); location.assign(result.url);
+      Object.assign(active(), p); refreshProfileList(); renderConnection();
+      await startSpotifyConnection(p.id);
     } catch (err) { message(err.message, true); $('message').scrollIntoView({ block: 'nearest' }); }
     finally { $('connect').disabled = false; }
   };
   $('disconnect').onclick = async () => {
     $('disconnect').disabled = true;
-    try { await flushSave(); Object.assign(active(), await api(`/api/profiles/${activeId}/disconnect`, 'POST', {})); lastLive = null; renderConnection(); pushPreview(); $('playback-status').textContent = 'Verbindung getrennt. Lokal gespeicherte Spotify-Tokens wurden entfernt.'; toast('Spotify getrennt.'); }
+    try { await flushSave(); const p = active(); Object.assign(p, await api(`/api/profiles/${p.id}/disconnect`, 'POST', {})); spotifyLogins.delete(p.id); if (p.id !== activeId) return; lastLive = null; renderConnection(); pushPreview(); $('playback-status').textContent = 'Verbindung getrennt. Lokal gespeicherte Spotify-Tokens wurden entfernt.'; toast('Spotify getrennt.'); }
     catch (e) { message(e.message, true); } finally { $('disconnect').disabled = false; }
   };
   $('rotate-url').onclick = async () => {
@@ -294,9 +389,12 @@ try {
   bind(); selectProfile(selected.id); $('version').textContent = app.version;
   renderUpdates(await api('/api/updates'));
   if ($('auto-check-updates').checked) setTimeout(checkUpdates, 2200);
-  if (query.has('connected')) message(location.hash === '#song-requests' ? 'Spotify-Warteschlange freigegeben.' : 'Spotify ist verbunden. Einen Titel abspielen und die Widget-URL in OBS einfügen.');
+  if (query.has('connected')) {
+    if (!location.hash) navigate('#connection');
+    message(location.hash === '#song-requests' ? 'Spotify-Warteschlange freigegeben.' : 'Spotify ist verbunden. Einen Titel abspielen und die Widget-URL in OBS einfügen.');
+  }
   const errors = { oauth_state: 'Die Anmeldung ist abgelaufen oder gehört zu einer anderen Browser-Sitzung. Erneut auf „Mit Spotify verbinden“ drücken und denselben Browser verwenden.', oauth_denied: 'Die Spotify-Freigabe wurde abgebrochen. Du kannst die Anmeldung erneut starten.', oauth_failed: 'Spotify konnte nicht verbunden werden. Client-ID, Redirect-URI und Nutzerfreigabe im Spotify Developer Dashboard prüfen.', oauth_scope: 'Spotify hat die benötigten Berechtigungen nicht freigegeben. Anmeldung erneut starten und die Freigabe bestätigen.' };
   if (query.has('error')) message(errors[query.get('error')] || 'Die Anmeldung konnte nicht abgeschlossen werden.', true);
-  if (query.size) history.replaceState({}, '', `/${location.hash}`);
-  setInterval(() => { pushPreview(); pollPlayback(); }, 2500);
+  if (query.size) history.replaceState({}, '', `/${nativeWindow ? '?desktop=1' : ''}${location.hash}`);
+  setInterval(() => { pushPreview(); pollPlayback(); checkSpotifyLogins(); }, 2500);
 } catch { message('Island Now ist nicht erreichbar. START-WINDOWS.cmd starten und diese Seite neu laden.', true); }

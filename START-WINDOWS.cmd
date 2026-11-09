@@ -2,18 +2,9 @@
 setlocal
 cd /d "%~dp0"
 title Island Now - Start
-if exist "%~dp0Island-Now.exe" goto run
-set "tray_csc=%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
-if not exist "%tray_csc%" set "tray_csc=%WINDIR%\Microsoft.NET\Framework\v4.0.30319\csc.exe"
-if not exist "%tray_csc%" (
-  echo Der .NET-Compiler von Windows wurde nicht gefunden.
-  echo .NET Framework 4.8 pruefen: https://learn.microsoft.com/dotnet/framework/install/
-  echo Diagnose ist mit START-KONSOLE.cmd moeglich.
-  pause
-  exit /b 1
-)
-echo Island Now wird einmalig als Tray-Anwendung vorbereitet ...
-"%tray_csc%" /nologo /target:winexe /optimize+ /platform:anycpu /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /out:"%~dp0Island-Now.exe" "%~dp0windows\Tray.cs" "%~dp0windows\NodeRuntime.cs"
+if exist "%~dp0Island-Now.exe" if exist "%~dp0windows\webview2\Microsoft.Web.WebView2.Core.dll" goto run
+echo Island Now wird einmalig als Windows-Anwendung vorbereitet ...
+"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\build-windows.ps1"
 if errorlevel 1 (
   echo Tray-Anwendung konnte nicht erstellt werden. ZIP vollstaendig in einen beschreibbaren Ordner entpacken.
   pause
