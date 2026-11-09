@@ -70,7 +70,7 @@ Der Bereich **Song Requests** ist pro Spotify-Profil standardmäßig ausgeschalt
 2. **Warteschlange freigeben** und die zusätzliche Spotify-Berechtigung bestätigen. Spotify Premium ist für das Einreihen erforderlich. Auf dem verbundenen Spotify-Konto die Wiedergabe auf dem gewünschten Gerät starten.
 3. Einen aktiven **Channel Reward** mit erforderlicher Texteingabe auswählen oder unter **Neuen Channel Reward erstellen** Name und Kosten festlegen. Anschließend **Song Requests annehmen** einschalten.
 
-Zuschauer geben beim Einlösen einen Suchtext wie `Avicii Levels` oder `Levels Avicii` ein. Auch `Songtitel - Interpret` und direkte Spotify-Track-Links (`https://open.spotify.com/track/…`, auch `spotify:track:…`) funktionieren. Die Suche bevorzugt einen exakten Titel und Interpreten. Die Wiedergabe läuft weiter; der Wunsch wird in Spotifys Warteschlange eingereiht.
+Zuschauer können den Titel allein eingeben, etwa `Levels`, oder den Interpreten ergänzen: `Avicii Levels`, `Levels Avicii` oder `Songtitel - Interpret`. Direkte Spotify-Track-Links (`https://open.spotify.com/track/…`, auch `spotify:track:…`) wählen genau den verlinkten Titel. Die Suche wählt den besten passenden, abspielbaren Treffer. Bei Gleichstand zählt die Spotify-Beliebtheit, falls die API diesen Wert liefert. Ansonsten bleibt die Spotify-Trefferreihenfolge. Die Wiedergabe läuft weiter; der Wunsch wird in Spotifys Warteschlange eingereiht.
 
 Unter **Chat** lässt sich die Bestätigung unabhängig vom Reward speichern. Sie wird erst nach erfolgreichem Einreihen vom verbundenen Twitch-Konto gesendet. Der Text unterstützt `{titel}`, `{interpret}` und `{user}`. In einem aktiven Twitch Shared Chat erscheint die Nachricht auch in den verbundenen Chats.
 

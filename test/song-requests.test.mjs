@@ -165,9 +165,11 @@ function providers() {
     }
     if (path.pathname.startsWith('/v1/tracks/')) { calls.trackReads.push(path.pathname); return json(spotifyTrack); }
     if (path.pathname === '/v1/search') {
-      calls.searches.push(path.searchParams.get('q'));
+      const q = path.searchParams.get('q');
+      calls.searches.push(q);
       assert.equal(path.searchParams.get('type'), 'track'); assert.equal(path.searchParams.get('limit'), '10');
-      return json({ tracks: { items: options.searchItems || [{ ...spotifyTrack, id: 'x'.repeat(22), artists: [{ name: 'Cover Artist' }] }, spotifyTrack] } });
+      const items = typeof options.searchItems === 'function' ? options.searchItems(q) : options.searchItems;
+      return json({ tracks: { items: items || [{ ...spotifyTrack, id: 'x'.repeat(22), artists: [{ name: 'Cover Artist' }] }, spotifyTrack] } });
     }
     if (path.pathname === '/v1/me/player/queue') {
       assert.equal(init.method, 'POST'); calls.queued.push(path.searchParams.get('uri')); return json({}, options.queueStatus);
@@ -281,11 +283,71 @@ test('Free-text requests find the exact title and artist in either order without
   socket.redemption('title-first', 'Levels Avicii');
   socket.redemption('no-matching-title', 'Avicii Ein anderer Titel');
   await f.drain();
-  assert.deepEqual(calls.searches, ['Avicii Levels', 'Levels Avicii', 'Avicii Ein anderer Titel']);
+  assert.deepEqual(calls.searches, ['Avicii Levels', 'Levels Avicii', 'Avicii Ein anderer Titel', 'track:Avicii Ein anderer Titel']);
   assert.deepEqual(calls.queued, Array(2).fill(`spotify:track:${levels.id}`));
   assert.deepEqual(calls.chat.map(entry => entry.message), Array(2).fill('Danke @zuschauer: Levels – Avicii'));
   assert.deepEqual((await f.state()).recent.map(entry => entry.status), ['rejected', 'queued', 'queued']);
   assert.deepEqual(calls.settled.at(-1), { id: 'no-matching-title', status: 'CANCELED' });
+});
+
+test('Title-only requests favor matching playable songs and confirm a successful HTTP 200', async t => {
+  const { calls, options, fetchFn } = providers(), f = await fixture(t, fetchFn);
+  connectSpotify(f.p); connectTwitch(f.p);
+  const socket = await enable(f);
+  const radio = { ...spotifyTrack, id: 'a'.repeat(22), name: 'Levels - Radio Edit', artists: [{ name: 'Avicii' }], popularity: 92 };
+  options.searchItems = [
+    { ...radio, id: 'b'.repeat(22), name: 'A Different Song', popularity: 100 },
+    { ...radio, id: 'c'.repeat(22), name: 'Levels', artists: [{ name: 'Cover Artist' }], popularity: 12 },
+    { ...radio, id: 'd'.repeat(22), name: 'Levels', is_playable: false, popularity: 100 },
+    { ...radio, id: 'e'.repeat(22), name: 'Levels - Festival Remix', popularity: 98 },
+    radio,
+  ];
+  options.queueStatus = 200;
+  socket.redemption('title-only', 'Levels');
+  await f.drain();
+  assert.deepEqual(calls.searches, ['Levels']);
+  assert.deepEqual(calls.queued, [`spotify:track:${radio.id}`]);
+  assert.equal(calls.chat[0].message, 'Danke @zuschauer: Levels - Radio Edit – Avicii');
+  assert.deepEqual(calls.settled, [{ id: 'title-only', status: 'FULFILLED' }]);
+  const entry = (await f.state()).recent[0];
+  assert.equal(entry.status, 'queued'); assert.equal(entry.note, '');
+});
+
+test('Title search retries with the track filter and preserves Spotify order without popularity', async t => {
+  const { calls, options, fetchFn } = providers(), f = await fixture(t, fetchFn);
+  connectSpotify(f.p); connectTwitch(f.p);
+  const socket = await enable(f);
+  const preferred = { ...spotifyTrack, id: 'p'.repeat(22), name: 'One' };
+  options.searchItems = q => q === 'track:One' ? [preferred, { ...preferred, id: 'q'.repeat(22), artists: [{ name: 'Another Band' }] }] : [spotifyTrack];
+  socket.redemption('title-filter', 'One');
+  await f.drain();
+  assert.deepEqual(calls.searches, ['One', 'track:One']);
+  assert.deepEqual(calls.queued, [`spotify:track:${preferred.id}`]);
+  assert.equal((await f.state()).recent[0].status, 'queued');
+});
+
+test('A dash inside the requested title does not require a matching artist name', async t => {
+  const { calls, options, fetchFn } = providers(), f = await fixture(t, fetchFn);
+  connectSpotify(f.p); connectTwitch(f.p);
+  const socket = await enable(f);
+  const radio = { ...spotifyTrack, id: 'r'.repeat(22), name: 'Levels - Radio Edit', artists: [{ name: 'Avicii' }], popularity: 63 };
+  options.searchItems = q => q.startsWith('track:') ? [] : [{ ...radio, id: 's'.repeat(22), name: 'Levels', popularity: 91 }, radio];
+  socket.redemption('version-title', 'Levels - Radio Edit');
+  await f.drain();
+  assert.deepEqual(calls.searches, ['track:Levels artist:Radio Edit', 'Levels - Radio Edit']);
+  assert.deepEqual(calls.queued, [`spotify:track:${radio.id}`]);
+});
+
+test('An incomplete title ranks a closer match ahead of a more popular version', async t => {
+  const { calls, options, fetchFn } = providers(), f = await fixture(t, fetchFn);
+  connectSpotify(f.p); connectTwitch(f.p);
+  const socket = await enable(f);
+  const closest = { ...spotifyTrack, id: 'z'.repeat(22), name: 'Bohemian Rhapsody', artists: [{ name: 'Queen' }], popularity: 58 };
+  options.searchItems = [{ ...closest, id: 'y'.repeat(22), name: 'Bohemian Rhapsody - Live', popularity: 99 }, closest];
+  socket.redemption('partial-title', 'Bohemian Rhapsod');
+  await f.drain();
+  assert.deepEqual(calls.queued, [`spotify:track:${closest.id}`]);
+  assert.equal((await f.state()).recent[0].status, 'queued');
 });
 
 test('EventSub migrates without resubscribing and stops when Twitch revokes authorization', async t => {
