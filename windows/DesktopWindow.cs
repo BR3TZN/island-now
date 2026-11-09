@@ -8,6 +8,8 @@ using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
 internal sealed class DesktopWindow : Form {
+    private const int WmSysCommand = 0x0112, ScMinimize = 0xf020;
+    private const int SwNormal = 1, SwMaximized = 3, SwRestore = 9;
     private static bool loaderConfigured;
     private readonly Uri origin;
     private readonly string sdkFolder, webData;
@@ -17,7 +19,8 @@ internal sealed class DesktopWindow : Form {
     private readonly Label loading;
     private WebView2 view;
     private FormWindowState restoreState = FormWindowState.Normal;
-    private bool shuttingDown, loaded, showingFallback;
+    private WindowPlacement? trayPlacement;
+    private bool restoring, shuttingDown, loaded, showingFallback;
     private string targetFragment = "";
 
     internal DesktopWindow(string address, string root, string data, Icon icon, Func<bool> closeAction, Action exit, Action<string> writeLog) {
@@ -32,11 +35,32 @@ internal sealed class DesktopWindow : Form {
 
     internal void Open(string fragment, bool reload = false) {
         if (fragment != null) targetFragment = fragment;
-        if (WindowState == FormWindowState.Minimized) WindowState = restoreState;
-        if (!Visible) Show();
+        restoring = true;
+        try {
+            if (!Visible) Show();
+            if (trayPlacement.HasValue) {
+                // Keep the original monitor, size and maximized state in Windows' workspace coordinates.
+                var placement = trayPlacement.Value;
+                trayPlacement = null;
+                SetWindowPlacement(Handle, ref placement);
+            }
+            // A hidden Form can report Normal even while Windows still treats it as minimized.
+            if (IsIconic(Handle)) ShowWindow(Handle, SwRestore);
+            if (MonitorFromWindow(Handle, 0) == IntPtr.Zero) {
+                var area = Screen.FromHandle(Handle).WorkingArea;
+                var size = new Size(Math.Min(Width, area.Width), Math.Min(Height, area.Height));
+                var state = WindowState;
+                WindowState = FormWindowState.Normal;
+                Bounds = new Rectangle(area.Left + (area.Width - size.Width) / 2,
+                    area.Top + (area.Height - size.Height) / 2, size.Width, size.Height);
+                if (state == FormWindowState.Maximized) WindowState = state;
+            }
+            if (WindowState != FormWindowState.Minimized) restoreState = WindowState;
+        } finally { restoring = false; }
+        BringToFront();
+        Activate();
         if (loaded && fragment != null) view.CoreWebView2.Navigate(Address(targetFragment));
         else if (loaded && reload) view.CoreWebView2.Reload();
-        Activate();
     }
 
     private string Address(string fragment) { return origin.GetLeftPart(UriPartial.Authority) + "/?desktop=1" + fragment; }
@@ -107,23 +131,57 @@ internal sealed class DesktopWindow : Form {
         Controls.Add(card); card.BringToFront();
     }
 
+    private void HideToTray() {
+        var placement = new WindowPlacement { Length = Marshal.SizeOf(typeof(WindowPlacement)) };
+        if (GetWindowPlacement(Handle, ref placement)) {
+            placement.ShowCommand = restoreState == FormWindowState.Maximized ? SwMaximized : SwNormal;
+            trayPlacement = placement;
+        }
+        Hide();
+    }
+
+    protected override void WndProc(ref Message message) {
+        // A caption minimize should hide the live window before it becomes iconic.
+        if (message.Msg == WmSysCommand && (message.WParam.ToInt64() & 0xfff0) == ScMinimize && !shuttingDown && !restoring && Visible) {
+            HideToTray();
+            message.Result = IntPtr.Zero;
+            return;
+        }
+        base.WndProc(ref message);
+    }
+
     protected override void OnResize(EventArgs e) {
         base.OnResize(e);
-        if (shuttingDown || IsDisposed) return;
-        if (WindowState == FormWindowState.Minimized && Visible) Hide();
-        else if (WindowState != FormWindowState.Minimized) restoreState = WindowState;
+        if (shuttingDown || IsDisposed || restoring) return;
+        if (WindowState != FormWindowState.Minimized) restoreState = WindowState;
+        else if (Visible) BeginInvoke((Action)delegate {
+            // Windows shortcuts and other native callers can minimize without SC_MINIMIZE.
+            if (!shuttingDown && !IsDisposed && !restoring && Visible && WindowState == FormWindowState.Minimized) HideToTray();
+        });
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e) {
         if (!shuttingDown && (e.CloseReason == CloseReason.UserClosing || e.CloseReason == CloseReason.TaskManagerClosing)) {
             e.Cancel = true;
-            if (e.CloseReason == CloseReason.UserClosing && closeToTray()) Hide();
+            if (e.CloseReason == CloseReason.UserClosing && closeToTray()) HideToTray();
             else BeginInvoke(exitApplication);
         }
         base.OnFormClosing(e);
     }
 
     internal void Shutdown() { if (!IsDisposed) { shuttingDown = true; Close(); Dispose(); } }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WindowPlacement {
+        internal int Length, Flags, ShowCommand;
+        internal int MinX, MinY, MaxX, MaxY;
+        internal int Left, Top, Right, Bottom;
+    }
+    [DllImport("user32.dll")] private static extern bool GetWindowPlacement(IntPtr window, ref WindowPlacement placement);
+    [DllImport("user32.dll")] private static extern bool SetWindowPlacement(IntPtr window, ref WindowPlacement placement);
+    [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr window);
+    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr window, int command);
+    [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool IsWow64Process2(IntPtr process, out ushort processMachine, out ushort nativeMachine);

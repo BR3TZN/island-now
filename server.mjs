@@ -71,6 +71,7 @@ export function createApp({ store = createStore(process.env.ISLAND_DATA_DIR || j
     '/themes.mjs': ['themes.mjs', 'text/javascript'], '/cover-colors.mjs': ['cover-colors.mjs', 'text/javascript'],
     '/retro-player.mjs': ['retro-player.mjs', 'text/javascript'],
     '/overlay.html': ['overlay.html', 'text/html'], '/demo-cover.svg': ['demo-cover.svg', 'image/svg+xml'],
+    '/quest-parchment.svg': ['quest-parchment.svg', 'image/svg+xml'],
     '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/help.html': ['help.html', 'text/html'],
   };
   const server = http.createServer(async (req, res) => {

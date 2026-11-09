@@ -1,5 +1,10 @@
 # Änderungen
 
+## 1.4.1
+
+- Beim Öffnen aus dem Tray erscheint das Windows-Fenster wieder an seiner vorherigen Position und in seiner bisherigen Größe. Ein maximiertes Fenster bleibt maximiert. Falls der ursprüngliche Bildschirm nicht mehr verfügbar ist, erscheint das Fenster auf einem angeschlossenen Bildschirm.
+- Neuer Widget-Stil **WoW-Questlog**: Pergament, Bronzerahmen, rotes Questzeichen und der Songfortschritt als EP-Leiste. Unter **Widget → Dein Look** auswählbar.
+
 ## 1.4.0
 
 - Eigene Ansichten für Widget, Song Requests, Verbindungen und Einstellungen. Song Requests hat Tabs für Einrichtung, Chat und Verlauf, mit sichtbarem Annahmestatus, Chatvorschau und getrenntem Speichern von Reward und Nachricht.

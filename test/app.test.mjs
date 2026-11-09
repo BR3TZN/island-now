@@ -225,7 +225,8 @@ test('Static assets resolve; no external JS and no broken DOM references in cont
   const js = await (await f.call('/app.js')).text();
   const requestsJs = await (await f.call('/song-requests.js')).text();
   for (const m of (js + requestsJs).matchAll(/\$\('([^']+)'\)/g)) assert.ok(ids.has(m[1]), `Missing element ${m[1]}`);
-  for (const path of ['/app.js', '/song-requests.js', '/styles.css', '/widget.js', '/widget-state.mjs', '/retro-player.mjs', '/themes.mjs', '/cover-colors.mjs', '/widget.css', '/overlay.html', '/demo-cover.svg', '/favicon.svg', '/help.html', '/auth/complete']) assert.equal((await f.call(path)).status, 200, path);
+  for (const path of ['/app.js', '/song-requests.js', '/styles.css', '/widget.js', '/widget-state.mjs', '/retro-player.mjs', '/themes.mjs', '/cover-colors.mjs', '/widget.css', '/overlay.html', '/demo-cover.svg', '/quest-parchment.svg', '/favicon.svg', '/help.html', '/auth/complete']) assert.equal((await f.call(path)).status, 200, path);
+  assert.match(html, /data-theme="warcraft"[^>]*>/);
   assert.equal(/<script[^>]+src="https?:/i.test(html), false);
   const overlay = await (await f.call('/overlay.html')).text();
   const overlayIds = new Set([...overlay.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
@@ -234,16 +235,18 @@ test('Static assets resolve; no external JS and no broken DOM references in cont
   assert.equal(/\.innerHTML\s*=/.test(js + requestsJs + widget), false);
 });
 
-test('All six themes, cover colors and animation settings survive persistence', async t => {
+test('All seven themes, cover colors and animation settings survive persistence', async t => {
   const f = await fixture(t, async () => response(null, 204));
-  for (const theme of ['island', 'studio', 'compact', 'cyberpunk', 'forza', 'linamp']) {
+  for (const theme of ['island', 'studio', 'compact', 'cyberpunk', 'forza', 'linamp', 'warcraft']) {
     const result = await (await f.call(`/api/profiles/${f.profile.id}`, 'PATCH', { settings: { theme, accentMode: 'cover', motion: 'top', motionDuration: 950, trackTransition: 'slide' } })).json();
     assert.equal(result.settings.theme, theme); assert.equal(result.settings.accentMode, 'cover');
     const restored = createStore(f.directory).state.profiles[0].settings;
     assert.equal(restored.theme, theme); assert.equal(restored.motion, 'top'); assert.equal(restored.motionDuration, 950); assert.equal(restored.trackTransition, 'slide');
   }
   const safe = settingsFrom({ theme: 'unknown', motion: 'url(evil)', motionDuration: 999999, trackTransition: 'bad', accentMode: 'bad' }, f.profile.settings);
-  assert.equal(safe.theme, 'linamp'); assert.equal(safe.motion, 'top'); assert.equal(safe.trackTransition, 'slide'); assert.equal(safe.accentMode, 'cover'); assert.equal(safe.motionDuration, 1500);
+  assert.equal(safe.theme, 'warcraft'); assert.equal(safe.motion, 'top'); assert.equal(safe.trackTransition, 'slide'); assert.equal(safe.accentMode, 'cover'); assert.equal(safe.motionDuration, 1500);
+  const overlay = await (await f.call(`/api/overlay/${f.profile.overlayKey}`)).json();
+  assert.equal(overlay.settings.theme, 'warcraft');
 });
 
 test('Cover colors favor dominant colored areas, keep contrast and provide fallback', () => {
