@@ -242,6 +242,44 @@ test('Chat template can be saved without changing the reward while Spotify needs
   assert.equal(calls.subscriptions.length, 1);
 });
 
+test('Muting chat confirmations survives a restart and still queues songs and fulfills Twitch rewards', async t => {
+  const { calls, fetchFn } = providers(), f = await fixture(t, fetchFn);
+  connectSpotify(f.p); connectTwitch(f.p);
+  const socket = await enable(f);
+  const template = f.p.songRequests.template;
+  delete f.p.songRequests.chatEnabled; // A profile saved before the setting was added.
+  assert.equal((await f.state()).chatEnabled, true);
+  assert.equal((await f.call(f.requests, 'PATCH', { chatEnabled: 'false' })).status, 400);
+  const mute = await f.call(f.requests, 'PATCH', { chatEnabled: false });
+  assert.equal(mute.status, 200);
+  assert.equal((await mute.json()).chatEnabled, false);
+  assert.equal(calls.subscriptions.length, 1);
+  assert.equal(socket.closed, false);
+  socket.redemption('silent', `spotify:track:${trackId}`); await f.drain();
+  assert.deepEqual(calls.queued, [`spotify:track:${trackId}`]);
+  assert.deepEqual(calls.settled, [{ id: 'silent', status: 'FULFILLED' }]);
+  assert.equal(calls.chat.length, 0);
+  assert.equal((await f.state()).recent[0].status, 'queued');
+
+  await f.restart();
+  const state = await f.state();
+  assert.equal(state.chatEnabled, false);
+  assert.equal(state.template, template);
+  assert.equal(state.enabled, true);
+  const resumed = f.sockets.at(-1); resumed.welcome('muted-restart'); await tick();
+  resumed.redemption('still-silent', `spotify:track:${trackId}`); await f.drain();
+  assert.equal(calls.queued.length, 2);
+  assert.equal(calls.chat.length, 0);
+  assert.deepEqual(calls.settled.at(-1), { id: 'still-silent', status: 'FULFILLED' });
+
+  const unmute = await f.call(f.requests, 'PATCH', { chatEnabled: true });
+  assert.equal(unmute.status, 200);
+  assert.equal((await unmute.json()).template, template);
+  resumed.redemption('audible', `spotify:track:${trackId}`); await f.drain();
+  assert.equal(calls.chat.length, 1);
+  assert.equal(calls.chat[0].message, 'Danke @zuschauer: Beyond the Sea – Bobby Darin');
+});
+
 test('Rejected, uncertain and chat-dropped song requests are reported without double queueing or false success', async t => {
   const { calls, options, fetchFn } = providers(), f = await fixture(t, fetchFn);
   connectSpotify(f.p); connectTwitch(f.p);

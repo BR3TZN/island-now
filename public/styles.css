@@ -82,6 +82,7 @@ button:disabled{cursor:default}.text-button{color:#c3c1cd;font-size:11px}.text-b
 .requests-summary-actions{display:flex;align-items:center;gap:15px}.requests-toggle{padding:6px 0}
 .requests-toggle i{width:45px;height:25px}.requests-toggle i:before{width:17px;height:17px;top:4px;left:4px;background:#d1cfdb}
 .requests-toggle input:checked+i:before{transform:translateX(20px)}
+.chat-confirmation-toggle{font-size:13px;font-weight:600;color:var(--text);padding:0 0 12px;margin-bottom:14px;border-bottom:1px solid var(--border)}
 .request-badge{display:inline-flex;padding:6px 10px;line-height:1.2}
 .request-badge::before{content:"";width:6px;height:6px;flex-shrink:0;background:currentColor;border-radius:50%}
 .request-badge:is([data-state=listening],[data-state=queued]){color:var(--success);background:#17281f;border-color:#3a674b}
