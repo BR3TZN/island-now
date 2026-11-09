@@ -164,14 +164,15 @@ test('Static assets resolve; no external JS and no broken DOM references in cont
   assert.match(html, /Dein Sound/); assert.match(html, /viewport/); assert.match(html, /aria-live/);
   const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
   const js = await (await f.call('/app.js')).text();
-  for (const m of js.matchAll(/\$\('([^']+)'\)/g)) assert.ok(ids.has(m[1]), `Missing element ${m[1]}`);
-  for (const path of ['/app.js', '/styles.css', '/widget.js', '/widget-state.mjs', '/retro-player.mjs', '/themes.mjs', '/cover-colors.mjs', '/widget.css', '/overlay.html', '/demo-cover.svg', '/favicon.svg', '/help.html']) assert.equal((await f.call(path)).status, 200, path);
+  const requestsJs = await (await f.call('/song-requests.js')).text();
+  for (const m of (js + requestsJs).matchAll(/\$\('([^']+)'\)/g)) assert.ok(ids.has(m[1]), `Missing element ${m[1]}`);
+  for (const path of ['/app.js', '/song-requests.js', '/styles.css', '/widget.js', '/widget-state.mjs', '/retro-player.mjs', '/themes.mjs', '/cover-colors.mjs', '/widget.css', '/overlay.html', '/demo-cover.svg', '/favicon.svg', '/help.html']) assert.equal((await f.call(path)).status, 200, path);
   assert.equal(/<script[^>]+src="https?:/i.test(html), false);
   const overlay = await (await f.call('/overlay.html')).text();
   const overlayIds = new Set([...overlay.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
   const widget = await (await f.call('/widget.js')).text();
   for (const m of widget.matchAll(/\$\('([^']+)'\)/g)) assert.ok(overlayIds.has(m[1]), `Missing widget element ${m[1]}`);
-  assert.equal(/\.innerHTML\s*=/.test(js + widget), false);
+  assert.equal(/\.innerHTML\s*=/.test(js + requestsJs + widget), false);
 });
 
 test('All six themes, cover colors and animation settings survive persistence', async t => {

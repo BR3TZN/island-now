@@ -59,6 +59,20 @@ Die **Client-ID** aus dem Dashboard eintragen. Sie hat 32 Hex-Zeichen. **Client-
 
 Spotify kann auf deinem Gaming-PC, Handy oder einem anderen Gerät laufen. Das Widget fragt den aktuellen Titel des angemeldeten **Kontos** ab. Island Now muss auf dem **OBS-PC** laufen, damit die lokale Browserquelle erreichbar ist. Unter Windows darfst du die Browser-Oberfläche schließen; die Anwendung läuft im Tray weiter.
 
+## Song Requests über Twitch
+
+Der Bereich **Song Requests** ist pro Spotify-Profil standardmäßig ausgeschaltet. Island Now arbeitet auch mit geschlossenem Browser weiter, solange es im Tray läuft. Bei ausgeschalteter Funktion bleibt der Twitch-Reward unverändert und kann weiter über Streamer.bot verarbeitet werden. Denselben Reward nur in einer Anwendung als Trigger aktivieren.
+
+1. In der [Twitch Developer Console](https://dev.twitch.tv/console/apps) eine Anwendung vom Typ **Public** erstellen. Falls eine Redirect-URL erforderlich ist, `http://localhost:17653` eintragen; die Anmeldung selbst verwendet einen Gerätecode. Die Twitch-Client-ID in Island Now eintragen und den Code mit dem Kanal bestätigen, dessen Rewards verwendet werden sollen. Kanalpunkte müssen für den Kanal verfügbar sein. Ein Client-Secret wird nicht benötigt.
+2. **Warteschlange freigeben** und die zusätzliche Spotify-Berechtigung bestätigen. Spotify Premium ist für das Einreihen erforderlich. Auf dem verbundenen Spotify-Konto die Wiedergabe auf dem gewünschten Gerät starten.
+3. Einen aktiven **Channel Reward** mit erforderlicher Texteingabe auswählen oder unter **Neuen Channel Reward erstellen** Name und Kosten festlegen. Anschließend **Song Requests annehmen** einschalten.
+
+Zuschauer geben beim Einlösen einen direkten Spotify-Track-Link (`https://open.spotify.com/track/…`, auch `spotify:track:…`) oder `Songtitel - Interpret` ein. Die Suche bevorzugt einen exakten Titel und Interpreten. Die Wiedergabe läuft weiter; der Wunsch wird in Spotifys Warteschlange eingereiht.
+
+Die Chatbestätigung wird erst nach erfolgreichem Einreihen vom verbundenen Twitch-Konto gesendet. Der Text unterstützt `{titel}`, `{interpret}` und `{user}`. In einem aktiven Twitch Shared Chat erscheint die Nachricht auch in den verbundenen Chats.
+
+Nur bei Rewards, die die verbundene Twitch-App verwalten darf, kann Island Now Einlösungen automatisch bestätigen und bei eindeutiger Ablehnung Punkte zurückgeben. Bei anderen Rewards wird der Einlösungsstatus nicht verändert. Wenn Spotify das Einreihen nicht bestätigt, zeigt der lokale Verlauf **Bitte prüfen**; Island Now reiht die Einlösung nicht automatisch erneut ein. Während Island Now beendet oder von Twitch getrennt ist, werden keine Einlösungen nachträglich eingereiht.
+
 ## Andere Personen und mehrere Konten
 
 Jede Person kann dieses saubere ZIP auf ihrem eigenen PC starten, ihre eigene Client-ID eintragen und sich im Browser mit ihrem eigenen Spotify-Konto anmelden. Die Anwendung ist dafür vorbereitet; es muss kein Code geändert werden.
@@ -102,7 +116,7 @@ Node.js ab 22, ausschließlich Node-Standardbibliothek, kein Build und keine npm
 server.mjs         Lokaler HTTP-Server und OAuth-Callback
 lib/               Spotify-Anbindung, Datenmodell und verschlüsselte Speicherung
 public/            Bedienoberfläche und transparentes OBS-Widget
-test/              Automatisierte Prüfungen mit simulierten Spotify-Antworten
+test/              Automatisierte Prüfungen mit simulierten Spotify- und Twitch-Antworten
 windows/Tray.cs    Quellcode für die native Windows-Tray-Anwendung
 ```
 
@@ -110,7 +124,7 @@ Start im Terminal: `node server.mjs --open`. Tests: `npm test` oder `node --test
 
 Der Tray-Starter verwendet Windows Forms / .NET Framework. Das Release-Workflow-Skript erstellt eine fertige EXE; bei Quellpaketen wird sie beim ersten Windows-Start lokal erstellt. In dieser Linux-Umgebung konnte die Windows-EXE nicht kompiliert oder ausgeführt werden.
 
-Die automatisierten Tests simulieren Spotify. Eine echte Anmeldung kann erst nach Eintragen einer gültigen Client-ID und persönlicher Freigabe des Kontos geprüft werden.
+Die automatisierten Tests simulieren Spotify und Twitch. Eine echte Anmeldung kann erst nach Eintragen gültiger Client-IDs und persönlicher Freigabe der Konten geprüft werden.
 
 ## Offizielle Quellen
 
@@ -120,6 +134,11 @@ Die automatisierten Tests simulieren Spotify. Eine echte Anmeldung kann erst nac
 - [Spotify: Änderungen im Development Mode 2026](https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide)
 - [Spotify: Refreshing tokens](https://developer.spotify.com/documentation/web-api/tutorials/refreshing-tokens)
 - [Spotify: Currently playing](https://developer.spotify.com/documentation/web-api/reference/get-the-users-currently-playing-track)
+- [Spotify: Add Item to Playback Queue](https://developer.spotify.com/documentation/web-api/reference/add-to-queue)
+- [Twitch: Device Code Grant Flow](https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/#device-code-grant-flow)
+- [Twitch: EventSub über WebSocket](https://dev.twitch.tv/docs/eventsub/handling-websocket-events/)
+- [Twitch: Get Custom Reward](https://dev.twitch.tv/docs/api/reference/#get-custom-reward)
+- [Twitch: Send Chat Message](https://dev.twitch.tv/docs/api/reference/#send-chat-message)
 - [Spotify: Rate limits](https://developer.spotify.com/documentation/web-api/concepts/rate-limits)
 - [Spotify: Design & Branding](https://developer.spotify.com/documentation/design)
 - [Microsoft: .NET Framework unter Windows](https://learn.microsoft.com/de-de/dotnet/framework/install/on-windows-and-server)

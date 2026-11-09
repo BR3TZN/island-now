@@ -31,3 +31,33 @@ main{margin-left:208px}.topbar{height:77px;border-bottom:1px solid var(--border)
 .preview-stage[data-theme=linamp]{height:370px}
 @media(max-width:790px){.preview-stage[data-theme=linamp]{height:330px}}
 @media(max-width:540px){.theme-option[data-theme=linamp]{min-height:106px}.preview-stage[data-theme=linamp]{height:270px}}
+
+.requests-panel{scroll-margin-top:16px}
+.requests-toggle{margin-top:14px;border-block:1px solid var(--border)}
+.requests-status,.requests-notice{color:var(--muted);font-size:12px;line-height:1.55;margin:12px 0}
+.requests-notice{padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#101010}
+.requests-notice.error,.requests-history li[data-state=unknown] span{color:#f3b083}
+#requests-badge[data-state=listening]{color:#86dcaa;border-color:#2c5c40}
+#requests-badge[data-state=error]{color:#f3b083;border-color:#624638}
+.requests-accounts{display:grid;gap:8px;margin:14px 0 10px}
+.request-account{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--border);border-radius:9px;background:#111}
+.request-account h3{margin:0;font-size:13px;font-weight:650}
+.request-account p{margin:4px 0 0;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.requests-twitch-form,.requests-field-row{display:flex;gap:8px;align-items:end}
+.requests-twitch-form label,.requests-field-row select{flex:1;min-width:0}
+.requests-panel label:not(.toggle-row){font-size:12px;font-weight:600}
+.requests-twitch-form input,.requests-create-form input{display:block;width:100%;margin-top:6px}
+.requests-pairing{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:12px;margin:10px 0;background:#111;border:1px solid var(--border);border-radius:9px}
+.requests-pairing span{display:block;font-size:10px;color:var(--muted);margin-bottom:4px}
+.requests-pairing strong{font:600 16px Consolas,monospace;letter-spacing:.08em}
+.requests-config{border-top:1px solid var(--border);margin-top:16px;padding-top:16px}
+.requests-field-row{margin-top:6px}.requests-field-row select{height:36px}
+.requests-panel textarea{display:block;width:100%;margin-top:6px;padding:9px 10px;font:inherit;color:var(--text);background:#101010;border:1px solid var(--border);border-radius:8px;resize:vertical}
+.requests-panel textarea:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.requests-chat-preview{overflow-wrap:anywhere;padding:9px 11px;border-left:2px solid var(--border);color:var(--muted);font-size:12px;background:#111}
+.requests-create-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(88px,.5fr);gap:10px;margin-top:12px}
+.requests-create-form p,.requests-create-form button{grid-column:1/-1}.requests-create-form button{justify-self:start}
+.requests-history{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px}
+.requests-history li{padding:8px 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+.requests-history strong,.requests-history span{display:block;font-size:12px}.requests-history span{color:var(--muted);margin-top:3px}
+@media(max-width:540px){.requests-twitch-form{flex-wrap:wrap}.requests-twitch-form label{flex-basis:100%}.request-account{align-items:start;flex-wrap:wrap}}

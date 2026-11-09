@@ -1,11 +1,13 @@
 import { THEME_ACCENTS } from './themes.mjs';
 import { dominantAccent } from './cover-colors.mjs';
+import { bindSongRequests } from './song-requests.js';
 const $ = id => document.getElementById(id);
 let app, activeId, settings, csrf, saveTimer, toastTimer, revision = 0, saveQueue = Promise.resolve();
 let previewMode = 'demo', lastLive = null, demoIndex = 0, demoStarted = Date.now(), testingUntil = 0, previewReady = false;
 let clientIdTimer;
 let updateState, updateTimer, updateWasStarted = false;
 let appearance = 'neutral', appearanceCover, appearanceRevision = 0;
+let requestsPanel;
 const pageAccents = new Map(), neutralAccent = '#d2d6dd';
 const demos = [
   { id: 'demo-1', title: 'Night Drive', artist: 'Island Demo', duration: 228000 },
@@ -82,6 +84,7 @@ function selectProfile(id) {
   activeId = id; remember(); const p = active(); settings = { ...p.settings }; lastLive = null;
   testingUntil = 0; previewMode = p.connected ? 'live' : 'demo';
   refreshProfileList(); renderConnection(); renderSettings(); renderPreviewMode();
+  requestsPanel.select(id);
   $('playback-status').textContent = p.connected ? 'Spotify-Verbindung wird geprüft …' : 'Noch kein Spotify-Konto verbunden.';
   $('playback-status').classList.remove('error'); pollPlayback();
 }
@@ -198,6 +201,11 @@ async function pollUpdate() {
   updateTimer = setTimeout(pollUpdate, 1500);
 }
 function bind() {
+  requestsPanel = bindSongRequests({ api, connectSpotify: async id => {
+    await flushSave();
+    const result = await api(`/api/profiles/${id}/connect`, 'POST', { purpose: 'song-requests' });
+    location.assign(result.url);
+  } });
   try { appearance = localStorage.getItem('island-appearance') === 'cover' ? 'cover' : 'neutral'; } catch {}
   $('appearance').value = appearance;
   document.documentElement.dataset.appearance = appearance;
@@ -286,9 +294,9 @@ try {
   bind(); selectProfile(selected.id); $('version').textContent = app.version;
   renderUpdates(await api('/api/updates'));
   if ($('auto-check-updates').checked) setTimeout(checkUpdates, 2200);
-  if (query.has('connected')) message('Spotify ist verbunden. Einen Titel abspielen und die Widget-URL in OBS einfügen.');
-  const errors = { oauth_state: 'Die Anmeldung ist abgelaufen oder gehört zu einer anderen Browser-Sitzung. Erneut auf „Mit Spotify verbinden“ drücken und denselben Browser verwenden.', oauth_denied: 'Die Spotify-Freigabe wurde abgebrochen. Du kannst die Anmeldung erneut starten.', oauth_failed: 'Spotify konnte nicht verbunden werden. Client-ID, Redirect-URI und Nutzerfreigabe im Spotify Developer Dashboard prüfen.' };
+  if (query.has('connected')) message(location.hash === '#song-requests' ? 'Spotify-Warteschlange freigegeben.' : 'Spotify ist verbunden. Einen Titel abspielen und die Widget-URL in OBS einfügen.');
+  const errors = { oauth_state: 'Die Anmeldung ist abgelaufen oder gehört zu einer anderen Browser-Sitzung. Erneut auf „Mit Spotify verbinden“ drücken und denselben Browser verwenden.', oauth_denied: 'Die Spotify-Freigabe wurde abgebrochen. Du kannst die Anmeldung erneut starten.', oauth_failed: 'Spotify konnte nicht verbunden werden. Client-ID, Redirect-URI und Nutzerfreigabe im Spotify Developer Dashboard prüfen.', oauth_scope: 'Spotify hat die benötigten Berechtigungen nicht freigegeben. Anmeldung erneut starten und die Freigabe bestätigen.' };
   if (query.has('error')) message(errors[query.get('error')] || 'Die Anmeldung konnte nicht abgeschlossen werden.', true);
-  if (query.size) history.replaceState({}, '', '/');
+  if (query.size) history.replaceState({}, '', `/${location.hash}`);
   setInterval(() => { pushPreview(); pollPlayback(); }, 2500);
 } catch { message('Island Now ist nicht erreichbar. START-WINDOWS.cmd starten und diese Seite neu laden.', true); }

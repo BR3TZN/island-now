@@ -1,5 +1,13 @@
 # Änderungen
 
+## 1.3.0
+
+- Optionale Twitch Song Requests pro Spotify-Profil. Der Schalter ist nach dem Update aus. Bestehende Rewards können weiterhin von Streamer.bot verarbeitet werden.
+- Aktiven Channel Reward mit Texteingabe auswählen oder direkt mit Name und Punktekosten erstellen. Twitch-Anmeldung per Gerätecode ohne Client-Secret.
+- Direkte Spotify-Track-Links und `Songtitel - Interpret` werden in die Warteschlange des aktiven Spotify-Geräts eingereiht. Die Wiedergabefreigabe wird separat erteilt.
+- Die Chatbestätigung lässt sich mit `{titel}`, `{interpret}` und `{user}` anpassen. Der lokale Verlauf zeigt Ergebnis und Fehler jeder verarbeiteten Einlösung.
+- Bei von der verbundenen Twitch-App verwalteten Rewards werden erfolgreiche Einlösungen bestätigt und eindeutig fehlgeschlagene Einlösungen erstattet. Doppelt zugestellte Ereignisse werden übersprungen.
+
 ## 1.2.3
 
 - Der bisherige LINAMP-Look heißt jetzt „Winamp Classic“ und übernimmt die festen Proportionen des klassischen Players: 275 × 116 Pixel, dunkler Rahmen, goldene Titelzeilen, silberne Tasten und grünes Display.
